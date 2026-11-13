@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { DATABASE_NAME, migrateDbIfNeeded } from '@/db/schema';
 import { ProProvider } from '@/lib/pro';
-import { SettingsProvider } from '@/lib/settings';
+import { SettingsProvider, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
 /** Form screens presented as modals over the current screen. */
@@ -24,15 +24,30 @@ export default function RootLayout() {
         <ProProvider>
           <ThemeProvider value={navTheme}>
             <StatusBar style="auto" />
-            <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: t.primary, headerTitleStyle: { color: t.text } }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
-              {MODALS.map((name) => (
-                <Stack.Screen key={name} name={name} options={{ presentation: 'modal' }} />
-              ))}
-            </Stack>
+            <RootStack />
           </ThemeProvider>
         </ProProvider>
       </SettingsProvider>
     </SQLiteProvider>
+  );
+}
+
+/** First launch shows only the walkthrough; finishing it swaps in the tabs automatically. */
+function RootStack() {
+  const t = useTheme();
+  const { onboarded } = useSettings();
+  return (
+    <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: t.primary, headerTitleStyle: { color: t.text } }}>
+      <Stack.Protected guard={onboarded}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
+      </Stack.Protected>
+      <Stack.Protected guard={!onboarded}>
+        <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade' }} />
+      </Stack.Protected>
+      <Stack.Screen name="smart-budget" options={{ title: 'Smart budget' }} />
+      {MODALS.map((name) => (
+        <Stack.Screen key={name} name={name} options={{ presentation: 'modal' }} />
+      ))}
+    </Stack>
   );
 }

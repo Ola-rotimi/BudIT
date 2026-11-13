@@ -12,6 +12,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     items: [
       { icon: 'list', color: '#0F766E', title: 'Activity', subtitle: 'All your income and expenses', href: '/transactions' },
       { icon: 'stats-chart', color: '#6366F1', title: 'Insights', subtitle: 'Spending by category and trends', href: '/insights' },
+      { icon: 'sparkles', color: '#0F766E', title: 'Smart budget', subtitle: 'A full budget built from your income', href: '/smart-budget', pro: true },
       { icon: 'flag', color: '#10B981', title: 'Savings goals', subtitle: 'Save towards the things that matter', href: '/goals', pro: true },
       { icon: 'calendar', color: '#F97316', title: 'Bills & subscriptions', subtitle: 'Recurring payments and due dates', href: '/bills', pro: true },
     ],

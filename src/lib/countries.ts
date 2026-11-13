@@ -5,7 +5,9 @@
  *
  * All amounts are annual, in the country's own currency.
  */
-import type { Contribution, TaxBracket, TaxCredit } from './finance';
+import type { Contribution, PayBase, PayBreakdown, RentRelief, TaxBracket, TaxCredit } from './finance';
+
+export type PayKey = keyof PayBreakdown;
 
 export type CountryPreset = {
   code: string;
@@ -15,6 +17,11 @@ export type CountryPreset = {
   region: 'africa' | 'world';
   /** A representative annual salary used to prefill the calculators. */
   typicalSalary: number;
+  /**
+   * Set when payroll rules depend on how pay is split (e.g. pension on basic + housing + transport).
+   * The calculators then ask for each component; `example` (% of gross) only prefills them.
+   */
+  payStructure?: { fields: PayKey[]; example: Record<PayKey, number> };
   tax: {
     year: string;
     allowance: number;
@@ -27,9 +34,12 @@ export type CountryPreset = {
     surchargePct?: number;
     surchargeLabel?: string;
     alternativeBrackets?: TaxBracket[];
+    rentRelief?: RentRelief;
     notes: string[];
   };
   pension: {
+    /** Which part of pay contributions are charged on (default: gross). */
+    base?: PayBase;
     scheme: string;
     retireAge: number;
     employeePct: number;
@@ -50,9 +60,10 @@ const annual = (...pairs: [number, number][]): TaxBracket[] => pairs.map(([from,
 /** Annual bands from monthly `[from, rate%]` pairs, for countries that publish monthly PAYE tables. */
 const monthly = (...pairs: [number, number][]): TaxBracket[] => pairs.map(([from, rate]) => ({ from: from * 12, rate }));
 /** A flat-rate contribution, optionally capped at an annual salary of `cap`. */
-const flat = (name: string, rate: number, opts: { cap?: number; deductible?: boolean } = {}): Contribution => ({
+const flat = (name: string, rate: number, opts: { cap?: number; deductible?: boolean; base?: PayBase } = {}): Contribution => ({
   name,
   deductible: !!opts.deductible,
+  base: opts.base,
   brackets: opts.cap ? [{ from: 0, rate }, { from: opts.cap, rate: 0 }] : [{ from: 0, rate }],
 });
 
@@ -65,21 +76,26 @@ export const COUNTRIES: CountryPreset[] = [
     currency: 'NGN',
     region: 'africa',
     typicalSalary: 6_000_000,
+    payStructure: { fields: ['basic', 'housing', 'transport', 'other'], example: { basic: 40, housing: 25, transport: 15, other: 20 } },
     tax: {
       year: '2026 (Nigeria Tax Act 2025)',
       allowance: 0,
       brackets: annual([0, 0], [800_000, 15], [3_000_000, 18], [12_000_000, 21], [25_000_000, 23], [50_000_000, 25]),
       contributions: [
-        flat('Pension (RSA)', 8, { deductible: true }),
-        flat('National Housing Fund', 2.5, { deductible: true }),
+        flat('Pension (RSA)', 8, { deductible: true, base: 'bht' }),
+        flat('National Housing Fund', 2.5, { deductible: true, base: 'basic' }),
       ],
+      rentRelief: { pct: 20, cap: 500_000 },
       notes: [
-        'New PAYE bands from 1 January 2026: the first ₦800,000 is tax-free.',
-        'The old Consolidated Relief Allowance is gone. Rent relief (20% of annual rent, up to ₦500,000) can be added under pre-tax deductions.',
-        'Pension is 8% of basic + housing + transport pay, and NHF is 2.5% of basic pay. Both are applied to your full salary here, so switch NHF off if you don’t contribute.',
+        'PAYE bands from 1 January 2026 (Nigeria Tax Act 2025): the first ₦800,000 a year is tax-free, then 15%, 18%, 21%, 23% and 25%.',
+        'Tax is charged on all your pay (basic plus every allowance), less pension, NHF and other allowed deductions.',
+        'Pension is 8% of basic + housing + transport (BHT), the minimum set by the Pension Reform Act 2014. NHF is 2.5% of basic salary. Both are deducted before tax.',
+        'The old Consolidated Relief Allowance is gone. Rent relief is 20% of the rent you pay a year, up to ₦500,000.',
+        'NHIS, life assurance premiums and mortgage interest on your home are also deductible. Add them under pre-tax deductions.',
       ],
     },
     pension: {
+      base: 'bht',
       scheme: 'Contributory Pension Scheme (RSA with your PFA)',
       retireAge: 60,
       employeePct: 8,
@@ -88,7 +104,11 @@ export const COUNTRIES: CountryPreset[] = [
       returnPct: 16,
       inflationPct: 15,
       salaryGrowthPct: 12,
-      notes: ['Pension Reform Act 2014 minimums: employee 8%, employer 10% of monthly emoluments.', 'Voluntary contributions to your RSA are tax-deductible.'],
+      notes: [
+        'Pension Reform Act 2014: you pay at least 8% and your employer at least 10% of your monthly emoluments, which can’t be less than basic + housing + transport.',
+        'If your employer contributes on more than BHT, raise the percentages to match your payslip.',
+        'Voluntary contributions to your RSA are tax-deductible (add them as an extra monthly top-up).',
+      ],
     },
   },
   {
@@ -98,17 +118,19 @@ export const COUNTRIES: CountryPreset[] = [
     currency: 'GHS',
     region: 'africa',
     typicalSalary: 60_000,
+    payStructure: { fields: ['basic', 'other'], example: { basic: 75, housing: 0, transport: 0, other: 25 } },
     tax: {
       year: '2026 (Act 1178, from 1 Sep 2026)',
       allowance: 0,
       brackets: annual([0, 0], [7_056, 5], [8_016, 10], [9_216, 17.5], [44_016, 25], [236_016, 30], [600_000, 35]),
-      contributions: [flat('SSNIT (Tier 1 & 2)', 5.5, { cap: 828_000, deductible: true })],
+      contributions: [flat('SSNIT (Tier 1 & 2)', 5.5, { cap: 828_000, deductible: true, base: 'basic' })],
       notes: [
         'Resident rates from Act 1178: the first GH₵588 a month is tax-free.',
-        'SSNIT is 5.5% of basic salary (insurable earnings up to GH₵69,000 a month) and is deducted before PAYE.',
+        'SSNIT is 5.5% of basic salary (insurable earnings up to GH₵69,000 a month in 2026) and is deducted before PAYE. Allowances are taxed but don’t attract SSNIT.',
       ],
     },
     pension: {
+      base: 'basic',
       scheme: 'Three-tier scheme: SSNIT (Tier 1) + occupational fund (Tier 2)',
       retireAge: 60,
       employeePct: 5.5,
@@ -312,14 +334,16 @@ export const COUNTRIES: CountryPreset[] = [
     currency: 'ETB',
     region: 'africa',
     typicalSalary: 180_000,
+    payStructure: { fields: ['basic', 'other'], example: { basic: 80, housing: 0, transport: 0, other: 20 } },
     tax: {
       year: '2025/26 (Proclamation 1395/2025)',
       allowance: 0,
       brackets: monthly([0, 0], [2_000, 15], [4_000, 20], [7_000, 25], [10_000, 30], [14_000, 35]),
-      contributions: [flat('Pension', 7, { deductible: true })],
+      contributions: [flat('Pension', 7, { deductible: true, base: 'basic' })],
       notes: ['New schedule from July 2025: the first ETB 2,000 a month is tax-free.', 'Pension is 7% of basic salary, deducted before tax.'],
     },
     pension: {
+      base: 'basic',
       scheme: 'Private Organization Employees’ Pension (defined benefit)',
       retireAge: 60,
       employeePct: 7,
@@ -1035,6 +1059,14 @@ export const COUNTRIES: CountryPreset[] = [
 ];
 
 const BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
+
+/** Splits an annual gross into components using the preset's example structure. */
+export function examplePay(preset: CountryPreset | undefined, grossAnnual: number): PayBreakdown | undefined {
+  const ex = preset?.payStructure?.example;
+  if (!ex) return undefined;
+  const part = (k: PayKey) => (grossAnnual * ex[k]) / 100;
+  return { basic: part('basic'), housing: part('housing'), transport: part('transport'), other: part('other') };
+}
 
 export function getCountry(code: string | null | undefined) {
   return code ? BY_CODE.get(code) : undefined;

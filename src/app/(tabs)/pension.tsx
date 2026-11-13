@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BarChart } from '@/components/charts';
 import { CountryBanner, PresetNotes } from '@/components/CountryBanner';
+import { examplePayInputs, PayFields, payTotal, toBreakdown, type PayInputs } from '@/components/PayFields';
 import { AppText, Card, Divider, Field, Screen, StatLine } from '@/components/ui';
-import { getCountry, type CountryPreset } from '@/lib/countries';
-import { projectPension, type PensionInput } from '@/lib/finance';
+import { getCountry, type CountryPreset, type PayKey } from '@/lib/countries';
+import { PAY_BASE_LABEL, payBases, projectPension, type PensionInput } from '@/lib/finance';
 import { ProLock } from '@/components/ProLock';
 import { useConversion } from '@/lib/fx';
 import { formatMajor, parseNumber } from '@/lib/money';
@@ -33,6 +34,9 @@ function defaultsFor(preset?: CountryPreset): Inputs {
   };
 }
 
+/** Salary components that count towards pensionable pay, by pension base. */
+const PENSIONABLE: Record<'basic' | 'bht', PayKey[]> = { basic: ['basic'], bht: ['basic', 'housing', 'transport'] };
+
 export default function PensionCalculator() {
   const { calcCountry } = useSettings();
   const preset = getCountry(calcCountry);
@@ -48,8 +52,16 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
   // Skip fetching rates while the results are locked.
   const conversion = useConversion(currency, isPro ? homeCurrency : currency);
   const [inputs, setInputs] = useState<Inputs>(() => defaultsFor(preset));
+  const [pay, setPay] = useState<PayInputs>(() => examplePayInputs(preset));
 
-  const num = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, parseNumber(v)])) as PensionInput;
+  // Where the scheme is charged on part of pay (Nigeria: basic + housing + transport), ask for those parts.
+  const base = preset?.pension.base;
+  const pensionBase = base === 'basic' || base === 'bht' ? base : null;
+  const monthlyPay = toBreakdown(pay);
+  const pensionable = pensionBase ? payBases(payTotal(monthlyPay), monthlyPay)[pensionBase] * 12 : null;
+
+  const parsed = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, parseNumber(v)])) as PensionInput;
+  const num = pensionable === null ? parsed : { ...parsed, salary: pensionable };
   const r = projectPension({ ...num, retireAge: Math.min(num.retireAge, num.currentAge + 70) });
 
   const field = (key: keyof PensionInput, label: string, opts: { money?: boolean; hint?: string } = {}) => (
@@ -78,16 +90,40 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
           {field('currentAge', 'Current age')}
           {field('retireAge', 'Retirement age')}
         </View>
-        <View style={styles.pair}>
-          {field('currentPot', 'Saved so far', { money: true })}
-          {field('salary', 'Annual salary', { money: true, hint: `${major(num.salary / 12)} a month` })}
-        </View>
+        {pensionBase ? (
+          field('currentPot', 'Saved so far', { money: true })
+        ) : (
+          <View style={styles.pair}>
+            {field('currentPot', 'Saved so far', { money: true })}
+            {field('salary', 'Annual salary', { money: true, hint: `${major(num.salary / 12)} a month` })}
+          </View>
+        )}
       </Card>
+
+      {pensionBase && (
+        <Card>
+          <AppText variant="heading">Monthly pay</AppText>
+          <AppText variant="caption">
+            Contributions are worked out on your {PAY_BASE_LABEL[pensionBase]}, as on your payslip. Other allowances don’t count.
+          </AppText>
+          <PayFields
+            fields={PENSIONABLE[pensionBase]}
+            values={pay}
+            onChange={(k, v) => setPay((s) => ({ ...s, [k]: v }))}
+            currency={currency}
+          />
+          <StatLine label="Pensionable pay per month" value={major(num.salary / 12)} bold />
+          <AppText variant="caption">
+            You pay {major((num.salary / 12) * (num.employeePct / 100))} and your employer pays{' '}
+            {major((num.salary / 12) * (num.employerPct / 100))} a month.
+          </AppText>
+        </Card>
+      )}
 
       <Card>
         <AppText variant="heading">Contributions</AppText>
         <View style={styles.pair}>
-          {field('employeePct', 'You (% of salary)')}
+          {field('employeePct', pensionBase ? 'You (% of pensionable pay)' : 'You (% of salary)')}
           {field('employerPct', 'Employer (%)')}
         </View>
         {field('salaryCap', 'Contribution salary cap (per year)', {

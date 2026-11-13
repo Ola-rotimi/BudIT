@@ -77,8 +77,29 @@ export function applyBands(amount: number, brackets: TaxBracket[]) {
   return { total, marginal: marginal / 100, breakdown };
 }
 
+/** The part of pay a contribution is charged on: all pay, basic salary, or basic + housing + transport (Nigeria). */
+export type PayBase = 'gross' | 'basic' | 'bht';
+
+/** Annual salary split into the components payroll rules refer to. */
+export type PayBreakdown = { basic: number; housing: number; transport: number; other: number };
+
+export const PAY_BASE_LABEL: Record<PayBase, string> = {
+  gross: 'gross pay',
+  basic: 'basic salary',
+  bht: 'basic + housing + transport',
+};
+
+/** Amount of pay each base covers. Without a breakdown, every base is the whole gross. */
+export function payBases(gross: number, pay?: PayBreakdown): Record<PayBase, number> {
+  if (!pay) return { gross, basic: gross, bht: gross };
+  return { gross, basic: pay.basic, bht: pay.basic + pay.housing + pay.transport };
+}
+
 /** A payroll deduction such as social security, health insurance or a mandatory pension. */
-export type Contribution = { name: string; brackets: TaxBracket[]; deductible: boolean };
+export type Contribution = { name: string; brackets: TaxBracket[]; deductible: boolean; base?: PayBase };
+
+/** Relief worth `pct`% of rent paid, up to `cap` a year (Nigeria's rent relief). */
+export type RentRelief = { pct: number; cap: number };
 
 /** A credit/rebate subtracted from income tax, optionally phased out above `taperFrom` taxable income. */
 export type TaxCredit = { name: string; amount: number; taperFrom?: number; taperRate?: number };
@@ -96,20 +117,30 @@ export type TaxInput = {
   surchargePct?: number;
   /** Alternative schedule on income before allowances; the lower result applies (Hong Kong). */
   alternativeBrackets?: TaxBracket[];
+  /** Salary components, for contributions charged on basic or BHT pay. Must add up to `grossAnnual`. */
+  pay?: PayBreakdown;
+  rentRelief?: RentRelief;
+  /** Rent paid per year, for `rentRelief`. */
+  rentPaid?: number;
 };
 
 export function calculateTax(input: TaxInput) {
   const gross = Math.max(0, input.grossAnnual);
+  const bases = payBases(gross, input.pay);
   const contributions = input.contributions.map((c) => ({
     name: c.name,
     deductible: c.deductible,
-    amount: applyBands(gross, c.brackets).total,
+    amount: applyBands(bases[c.base ?? 'gross'], c.brackets).total,
   }));
   const contributionsTotal = contributions.reduce((s, c) => s + c.amount, 0);
   const deductibleContributions = contributions.reduce((s, c) => s + (c.deductible ? c.amount : 0), 0);
   const expenses = input.expenseDeduction ? Math.min(gross, applyBands(gross, input.expenseDeduction).total) : 0;
 
-  const netIncome = Math.max(0, gross - input.preTaxDeductions - expenses - deductibleContributions);
+  const rentRelief = input.rentRelief
+    ? Math.min((Math.max(0, input.rentPaid ?? 0) * input.rentRelief.pct) / 100, input.rentRelief.cap)
+    : 0;
+
+  const netIncome = Math.max(0, gross - input.preTaxDeductions - expenses - deductibleContributions - rentRelief);
   const taxable = Math.max(0, netIncome - input.allowance);
   const bands = applyBands(taxable, input.brackets);
 
@@ -136,6 +167,7 @@ export function calculateTax(input: TaxInput) {
   const netAnnual = gross - input.preTaxDeductions - totalTax;
   return {
     expenses,
+    rentRelief,
     taxable,
     credits,
     creditsApplied: Math.min(creditsTotal, bands.total),

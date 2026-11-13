@@ -1,14 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { TransactionRow, useBudgetColor } from '@/components/finance';
-import { AppText, Button, Card, EmptyState, ListRow, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
+import { ProBadge } from '@/components/ProLock';
+import { AppText, Button, Card, EmptyState, IconBadge, ListRow, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
 import { allTimeTotals, budgetsWithSpending, listBills, listGoals, monthTotals, recentTransactions } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { currentMonthKey, dayLabel, daysBetween, daysInMonth, monthLabel, todayISO } from '@/lib/dates';
 import { formatPercent } from '@/lib/money';
+import { takePendingRoute } from '@/lib/onboarding';
 import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { BRAND, useTheme } from '@/lib/theme';
@@ -26,6 +28,12 @@ export default function HomeScreen() {
   const { isPro } = usePro();
   const month = currentMonthKey();
   const today = todayISO();
+
+  // Opens whatever the walkthrough asked for (e.g. Smart budget) once Home is on screen.
+  useEffect(() => {
+    const href = takePendingRoute();
+    if (href) router.push(href);
+  }, []);
 
   const data = useQuery(`home:${month}:${today}`, async (db) => {
     const [totals, allTime, budgets, bills, goals, recent] = await Promise.all([
@@ -113,6 +121,20 @@ export default function HomeScreen() {
           onPress={() => router.push({ pathname: '/transaction', params: { type: 'income' } })}
         />
       </View>
+
+      <Card onPress={() => router.push('/smart-budget')} style={styles.smartCard}>
+        <IconBadge icon="sparkles" color={t.primary} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.smartTitle}>
+            <AppText weight="700">Smart budget</AppText>
+            {!isPro && <ProBadge />}
+          </View>
+          <AppText variant="caption">
+            {budgets.length ? 'Rebalance your budgets from your income in one tap.' : 'Enter your income and BudT builds your whole budget.'}
+          </AppText>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={t.muted} />
+      </Card>
 
       <Card>
         <SectionHeader title="Monthly budget" action={{ label: budgets.length ? 'Details' : 'Set up', onPress: () => router.navigate('/budgets') }} />
@@ -294,5 +316,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.35)',
   },
   actions: { flexDirection: 'row', gap: 12 },
+  smartCard: { flexDirection: 'row', alignItems: 'center' },
+  smartTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
 });

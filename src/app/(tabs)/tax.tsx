@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { DonutChart, Legend } from '@/components/charts';
 import { CountryBanner, PresetNotes } from '@/components/CountryBanner';
+import { examplePayInputs, PayFields, payTotal, toBreakdown, type PayInputs } from '@/components/PayFields';
 import { AppText, Button, Card, Divider, Field, Screen, Segmented, StatLine } from '@/components/ui';
 import { getCountry, type CountryPreset } from '@/lib/countries';
-import { calculateTax, EXAMPLE_BRACKETS, type Contribution, type TaxBracket } from '@/lib/finance';
+import { calculateTax, EXAMPLE_BRACKETS, PAY_BASE_LABEL, type Contribution, type PayBase, type TaxBracket } from '@/lib/finance';
 import { ProLock } from '@/components/ProLock';
 import { useConversion } from '@/lib/fx';
 import { formatMajor, formatPercent, parseNumber } from '@/lib/money';
@@ -37,6 +38,8 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
 
   const [period, setPeriod] = useState<Period>('month');
   const [salary, setSalary] = useState(String(Math.round((preset?.typicalSalary ?? 60_000) / 12)));
+  const [pay, setPay] = useState<PayInputs>(() => examplePayInputs(preset));
+  const [rent, setRent] = useState('0');
   const [deductions, setDeductions] = useState('0');
   const [allowance, setAllowance] = useState(String(tax?.allowance ?? 0));
   const [social, setSocial] = useState('0');
@@ -45,7 +48,9 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
   const [showBands, setShowBands] = useState(!preset);
 
   const perYear = period === 'year' ? 1 : 12;
-  const gross = parseNumber(salary) * perYear;
+  const structure = preset?.payStructure;
+  const payAnnual = structure ? toBreakdown(pay, perYear) : undefined;
+  const gross = payAnnual ? payTotal(payAnnual) : parseNumber(salary) * perYear;
   const contributions: Contribution[] = preset
     ? tax!.contributions.filter((c) => !disabled.has(c.name))
     : [{ name: 'Social contributions', deductible: false, brackets: [{ from: 0, rate: parseNumber(social) }] }];
@@ -60,7 +65,11 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
     credits: tax?.credits,
     surchargePct: tax?.surchargePct,
     alternativeBrackets: tax?.alternativeBrackets,
+    pay: payAnnual,
+    rentRelief: tax?.rentRelief,
+    rentPaid: parseNumber(rent),
   });
+  const deductibleTotal = result.contributions.reduce((s, c) => s + (c.deductible ? c.amount : 0), 0);
   /** Converts an annual figure to the selected period for display. */
   const p = (annual: number) => major(annual / perYear);
   const periodLabel = period === 'month' ? 'month' : 'year';
@@ -100,6 +109,11 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
               const factor = next === 'year' ? 12 : 1 / 12;
               setSalary(String(Math.round(parseNumber(salary) * factor)));
               setDeductions(String(Math.round(parseNumber(deductions) * factor)));
+              setPay((s) => {
+                const scaled = { ...s };
+                for (const k of Object.keys(s) as (keyof PayInputs)[]) scaled[k] = String(Math.round(parseNumber(s[k]) * factor));
+                return scaled;
+              });
             }
             setPeriod(next);
           }}
@@ -108,21 +122,46 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
             { value: 'year', label: 'Annual pay' },
           ]}
         />
-        <Field
-          label={`Gross salary per ${periodLabel}`}
-          prefix={currency}
-          value={salary}
-          onChangeText={setSalary}
-          keyboardType="decimal-pad"
-          hint={period === 'month' ? `${major(gross)} a year` : `${major(gross / 12)} a month`}
-        />
+        {structure ? (
+          <>
+            <AppText variant="caption">
+              Enter your pay per {periodLabel} as it appears on your payslip. {describePayRules(tax!.contributions)}
+            </AppText>
+            <PayFields fields={structure.fields} values={pay} onChange={(k, v) => setPay((s) => ({ ...s, [k]: v }))} currency={currency} />
+            <StatLine label={`Gross pay per ${periodLabel}`} value={p(gross)} bold />
+            <AppText variant="caption">{period === 'month' ? `${major(gross)} a year` : `${major(gross / 12)} a month`}</AppText>
+          </>
+        ) : (
+          <Field
+            label={`Gross salary per ${periodLabel}`}
+            prefix={currency}
+            value={salary}
+            onChangeText={setSalary}
+            keyboardType="decimal-pad"
+            hint={period === 'month' ? `${major(gross)} a year` : `${major(gross / 12)} a month`}
+          />
+        )}
+        {tax?.rentRelief && (
+          <Field
+            label="Rent you pay per year"
+            prefix={currency}
+            value={rent}
+            onChangeText={setRent}
+            keyboardType="decimal-pad"
+            hint={`Rent relief: ${tax.rentRelief.pct}% of rent, up to ${major(tax.rentRelief.cap)} a year${result.rentRelief > 0 ? `. You get ${major(result.rentRelief)}.` : '.'}`}
+          />
+        )}
         <Field
           label={`Pre-tax deductions per ${periodLabel}`}
           prefix={currency}
           value={deductions}
           onChangeText={setDeductions}
           keyboardType="decimal-pad"
-          hint="Reliefs paid before tax, such as voluntary pension, rent relief or retirement annuity."
+          hint={
+            tax?.rentRelief
+              ? 'Other allowed deductions, such as NHIS, life assurance premiums or voluntary pension.'
+              : 'Reliefs paid before tax, such as voluntary pension, rent relief or retirement annuity.'
+          }
         />
         {!preset && (
           <Field
@@ -142,7 +181,7 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
               <View style={{ flex: 1 }}>
                 <AppText weight="600">{c.name}</AppText>
                 <AppText variant="caption">
-                  {describeBands(c.brackets, (v) => major(v, true))}
+                  {describeBands(c.brackets, (v) => major(v, true), structure ? c.base : undefined)}
                   {c.deductible ? ' · reduces taxable income' : ''}
                 </AppText>
               </View>
@@ -245,6 +284,9 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
             <AppText variant="label">Per {periodLabel}</AppText>
             <StatLine label="Gross pay" value={p(gross)} />
             {result.expenses > 0 && <StatLine label={tax?.expenseLabel ?? 'Expense deduction'} value={`−${p(result.expenses)}`} />}
+            {deductibleTotal > 0 && <StatLine label="Contributions deducted before tax" value={`−${p(deductibleTotal)}`} />}
+            {result.rentRelief > 0 && <StatLine label="Rent relief" value={`−${p(result.rentRelief)}`} />}
+            {parseNumber(deductions) > 0 && <StatLine label="Other pre-tax deductions" value={`−${p(parseNumber(deductions) * perYear)}`} />}
             <StatLine label="Taxable income" value={p(result.taxable)} />
             {result.creditsApplied > 0 && (
               <StatLine label={summariseCredits(result.credits.map((c) => c.name))} value={`−${p(result.creditsApplied)}`} color={t.income} />
@@ -292,12 +334,21 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
 }
 
 /** Short description of a contribution schedule, e.g. "6% up to KSh 1.3M" or "0.5% → 2% → 3% → 8%". */
-function describeBands(brackets: TaxBracket[], fmt: (v: number) => string) {
+function describeBands(brackets: TaxBracket[], fmt: (v: number) => string, base?: PayBase) {
   const [first, second] = brackets;
-  if (brackets.length === 1) return `${first.rate}% of pay`;
-  if (brackets.length === 2 && second.rate === 0) return `${first.rate}% of pay up to ${fmt(second.from)} a year`;
-  if (brackets.length === 2 && first.rate === 0) return `${second.rate}% of pay above ${fmt(second.from)}`;
+  const of = base && base !== 'gross' ? PAY_BASE_LABEL[base] : 'pay';
+  if (brackets.length === 1) return `${first.rate}% of ${of}`;
+  if (brackets.length === 2 && second.rate === 0) return `${first.rate}% of ${of} up to ${fmt(second.from)} a year`;
+  if (brackets.length === 2 && first.rate === 0) return `${second.rate}% of ${of} above ${fmt(second.from)}`;
   return brackets.map((b) => `${b.rate}%`).join(' → ') + ' by band';
+}
+
+/** e.g. "Pension (RSA) is worked out on your basic + housing + transport." */
+function describePayRules(contributions: Contribution[]) {
+  const parts = contributions
+    .filter((c) => c.base && c.base !== 'gross')
+    .map((c) => `${c.name} is worked out on your ${PAY_BASE_LABEL[c.base!]}`);
+  return parts.length ? `${parts.join('; ')}.` : '';
 }
 
 function summariseCredits(names: string[]) {

@@ -186,6 +186,32 @@ export async function deleteBudget(db: SQLiteDatabase, categoryId: number) {
   notifyChange();
 }
 
+export const EMERGENCY_GOAL = 'Emergency fund';
+
+/**
+ * Saves a smart-budget plan: replaces every budget with the plan's, and optionally creates
+ * (or retargets) the emergency fund goal. All or nothing.
+ */
+export async function applyBudgetPlan(db: SQLiteDatabase, budgets: Budget[], emergencyTarget?: number) {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM budgets');
+    for (const b of budgets) {
+      await db.runAsync('INSERT INTO budgets (category_id, amount) VALUES (?, ?)', b.category_id, b.amount);
+    }
+    if (emergencyTarget) {
+      const goal = await db.getFirstAsync<{ id: number }>('SELECT id FROM goals WHERE name = ?', EMERGENCY_GOAL);
+      if (goal) await db.runAsync('UPDATE goals SET target = ? WHERE id = ?', emergencyTarget, goal.id);
+      else {
+        await db.runAsync(
+          'INSERT INTO goals (name, target, saved, deadline, color, icon) VALUES (?, ?, 0, NULL, ?, ?)',
+          EMERGENCY_GOAL, emergencyTarget, '#10B981', 'shield-checkmark',
+        );
+      }
+    }
+  });
+  notifyChange();
+}
+
 // ---------- Goals ----------
 
 export function listGoals(db: SQLiteDatabase) {

@@ -13,6 +13,7 @@ import { useTheme } from '@/lib/theme';
 const AFRICAN_COUNT = COUNTRIES.filter((c) => c.region === 'africa').length;
 
 const FEATURES: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'sparkles', title: 'Smart budget', text: 'Enter your income and get a complete budget built on proven rules like 50/30/20.' },
   {
     icon: 'calculator',
     title: 'Tax calculator',

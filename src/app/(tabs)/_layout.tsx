@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
-import type { ColorValue } from 'react-native';
+import { View, type ColorValue } from 'react-native';
 import { HeaderButton } from '@/components/ui';
 import type { IconName } from '@/db/types';
 import { useTheme } from '@/lib/theme';
@@ -34,7 +34,12 @@ export default function TabLayout() {
         options={{
           title: 'Budgets',
           tabBarIcon: tabIcon('pie-chart'),
-          headerRight: () => <HeaderButton icon="add" label="Add budget" onPress={() => router.push('/budget')} />,
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HeaderButton icon="sparkles-outline" label="Smart budget" onPress={() => router.push('/smart-budget')} />
+              <HeaderButton icon="add" label="Add budget" onPress={() => router.push('/budget')} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen

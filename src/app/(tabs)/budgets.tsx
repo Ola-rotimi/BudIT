@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { MonthSwitcher, useBudgetColor } from '@/components/finance';
-import { AppText, Card, EmptyState, IconBadge, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
+import { AppText, Button, Card, EmptyState, IconBadge, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
 import { budgetsWithSpending, categoryTotals } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { currentMonthKey, daysInMonth, todayISO } from '@/lib/dates';
@@ -44,9 +44,10 @@ export default function BudgetsScreen() {
           <EmptyState
             icon="pie-chart-outline"
             title="No budgets yet"
-            message="Set a monthly limit for categories like groceries or transport, and BudT will track how much is left."
-            action={{ label: 'Create a budget', onPress: () => openBudget() }}
+            message="Let Smart budget build one from your income, or set a monthly limit for each category yourself."
+            action={{ label: 'Build with Smart budget', onPress: () => router.push('/smart-budget') }}
           />
+          <Button title="Create a budget manually" variant="ghost" onPress={() => openBudget()} />
         </Card>
       ) : (
         <>

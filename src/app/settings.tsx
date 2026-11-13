@@ -21,7 +21,13 @@ const showError = (title: string, e: unknown) =>
 export default function SettingsScreen() {
   const t = useTheme();
   const db = useSQLiteContext();
-  const { currency, currencyChosen, setCurrency, country, theme, setTheme, reload } = useSettings();
+  const { currency, currencyChosen, setCurrency, country, theme, setTheme, reload, setOnboarded } = useSettings();
+
+  // Back to the tabs first so the walkthrough (which replaces them) has nothing stacked above it.
+  const replayTour = () => {
+    router.dismissAll();
+    setOnboarded(false);
+  };
   const homeCountry = getCountry(country);
   const pro = usePro();
 
@@ -172,6 +178,8 @@ export default function SettingsScreen() {
 
       <Card style={{ gap: 6 }}>
         <ListRow icon="pricetags" iconColor="#EC4899" title="Categories" subtitle="Add, edit or archive" onPress={() => router.push('/categories')} />
+        <Divider />
+        <ListRow icon="map-outline" iconColor="#0EA5E9" title="Replay walkthrough" subtitle="The quick tour shown on first launch" onPress={replayTour} />
       </Card>
 
       <Card style={{ gap: 6 }}>

@@ -20,11 +20,14 @@ type Settings = {
   setCalcCountry: (code: string) => Promise<void>;
   theme: ThemePreference;
   setTheme: (theme: ThemePreference) => Promise<void>;
+  /** False until the first-launch walkthrough is finished or skipped. */
+  onboarded: boolean;
+  setOnboarded: (done: boolean) => Promise<void>;
   /** Re-reads every setting from the database, e.g. after restoring a backup. */
   reload: () => Promise<void>;
 };
 
-type Stored = { currency: string | null; country: string | null; calcCountry: string | null; theme: string | null };
+type Stored = { currency: string | null; country: string | null; calcCountry: string | null; theme: string | null; onboarded: string | null };
 
 const SettingsContext = createContext<Settings | null>(null);
 
@@ -34,11 +37,11 @@ function applyTheme(theme: string | null) {
 }
 
 async function readAll(db: SQLiteDatabase): Promise<Stored> {
-  const [currency, country, calcCountry, theme] = await Promise.all(
-    ['currency', 'country', 'calcCountry', 'theme'].map((key) => getSetting(db, key)),
+  const [currency, country, calcCountry, theme, onboarded] = await Promise.all(
+    ['currency', 'country', 'calcCountry', 'theme', 'onboarded'].map((key) => getSetting(db, key)),
   );
   applyTheme(theme);
-  return { currency, country, calcCountry, theme };
+  return { currency, country, calcCountry, theme, onboarded };
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -77,6 +80,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         applyTheme(theme);
         return update({ theme });
       },
+      // Installs from before the walkthrough existed count as onboarded once a country is set.
+      onboarded: stored.onboarded ? stored.onboarded === '1' : !!stored.country,
+      setOnboarded: (done) => update({ onboarded: done ? '1' : '0' }),
       reload: () => readAll(db).then(setStored),
     };
   }, [db, stored, update]);
