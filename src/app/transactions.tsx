@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { SectionList, StyleSheet, TextInput, View } from 'react-native';
-import { MonthSwitcher, TransactionRow } from '@/components/finance';
+import { MonthSwitcher, TransactionRow, TransferRow } from '@/components/finance';
 import { AppText, EmptyState, HeaderButton, Segmented } from '@/components/ui';
-import { listTransactions, type TxRow } from '@/db/queries';
+import { getAccount, listTransactions, listTransfers, type TransferRow as TransferData, type TxRow } from '@/db/queries';
 import type { TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
 import { currentMonthKey, dayLabel } from '@/lib/dates';
@@ -12,36 +12,55 @@ import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
 type Filter = 'all' | TxType;
+type Entry = { key: string; date: string; tx?: TxRow; transfer?: TransferData };
 
+/** All activity for a period. With `?account=<id>` it shows one account, including transfers in and out. */
 export default function TransactionsScreen() {
   const t = useTheme();
   const { money } = useMoney();
+  const params = useLocalSearchParams<{ account?: string }>();
+  const accountId = params.account ? Number(params.account) : undefined;
   const [month, setMonth] = useState(currentMonthKey());
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
 
-  const rows = useQuery(`tx:${month}:${filter}:${search}`, (db) =>
-    listTransactions(db, month, filter === 'all' ? undefined : filter, search),
-  );
+  const data = useQuery(`tx:${month}:${filter}:${search}:${accountId ?? ''}`, async (db) => {
+    const [txs, transfers, account] = await Promise.all([
+      listTransactions(db, month, filter === 'all' ? undefined : filter, search, accountId),
+      // Transfers aren't income or spending, so they only appear in the unfiltered list.
+      filter === 'all' && !search.trim() ? listTransfers(db, month, accountId) : Promise.resolve([]),
+      accountId ? getAccount(db, accountId) : Promise.resolve(null),
+    ]);
+    return { txs, transfers, account };
+  });
+  const rows = data?.txs;
 
   const { sections, income, expense } = useMemo(() => {
-    const groups = new Map<string, TxRow[]>();
+    const entries: Entry[] = [
+      ...(data?.txs ?? []).map((tx) => ({ key: `t${tx.id}`, date: tx.date, tx })),
+      ...(data?.transfers ?? []).map((transfer) => ({ key: `x${transfer.id}`, date: transfer.date, transfer })),
+    ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    const groups = new Map<string, Entry[]>();
     let income = 0;
     let expense = 0;
-    for (const r of rows ?? []) {
+    for (const r of data?.txs ?? []) {
       if (r.type === 'income') income += r.amount;
       else expense += r.amount;
-      const list = groups.get(r.date);
-      if (list) list.push(r);
-      else groups.set(r.date, [r]);
     }
-    const sections = [...groups].map(([date, data]) => ({
-      date,
-      data,
-      net: data.reduce((s, r) => s + (r.type === 'income' ? r.amount : -r.amount), 0),
-    }));
+    for (const e of entries) {
+      const list = groups.get(e.date);
+      if (list) list.push(e);
+      else groups.set(e.date, [e]);
+    }
+    // A transfer only changes the net when looking at one account (money in or out of it).
+    const effect = (e: Entry) => {
+      if (e.tx) return e.tx.type === 'income' ? e.tx.amount : -e.tx.amount;
+      if (!accountId || !e.transfer) return 0;
+      return e.transfer.to_account === accountId ? e.transfer.amount : -e.transfer.amount;
+    };
+    const sections = [...groups].map(([date, data]) => ({ date, data, net: data.reduce((s, e) => s + effect(e), 0) }));
     return { sections, income, expense };
-  }, [rows]);
+  }, [data, accountId]);
 
   return (
     <SectionList
@@ -51,16 +70,37 @@ export default function TransactionsScreen() {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       sections={sections}
-      keyExtractor={(item) => String(item.id)}
+      keyExtractor={(item) => item.key}
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
         <View style={{ gap: 12, marginBottom: 8 }}>
           <Stack.Screen
             options={{
-              title: 'Activity',
-              headerRight: () => <HeaderButton icon="add" label="Add transaction" onPress={() => router.push('/transaction')} />,
+              title: data?.account?.name ?? 'Activity',
+              headerRight: () => (
+                <View style={{ flexDirection: 'row' }}>
+                  {accountId ? (
+                    <HeaderButton icon="create-outline" label="Edit account" onPress={() => router.push({ pathname: '/account', params: { id: String(accountId) } })} />
+                  ) : null}
+                  <HeaderButton
+                    icon="swap-horizontal"
+                    label="Transfer"
+                    onPress={() => router.push(accountId ? { pathname: '/transfer', params: { from: String(accountId) } } : '/transfer')}
+                  />
+                  <HeaderButton
+                    icon="add"
+                    label="Add transaction"
+                    onPress={() => router.push(accountId ? { pathname: '/transaction', params: { account: String(accountId) } } : '/transaction')}
+                  />
+                </View>
+              ),
             }}
           />
+          {data?.account && (
+            <View style={[styles.summary, { backgroundColor: t.card, borderColor: t.border }]}>
+              <SummaryItem label="Balance now" value={money(data.account.balance)} color={data.account.balance < 0 ? t.expense : t.text} />
+            </View>
+          )}
           <MonthSwitcher month={month} onChange={setMonth} />
           <View style={[styles.search, { backgroundColor: t.inputBg, borderColor: t.border }]}>
             <Ionicons name="search" size={18} color={t.muted} />
@@ -98,7 +138,7 @@ export default function TransactionsScreen() {
       )}
       renderItem={({ item }) => (
         <View style={[styles.item, { backgroundColor: t.card }]}>
-          <TransactionRow tx={item} />
+          {item.tx ? <TransactionRow tx={item.tx} /> : <TransferRow x={item.transfer!} accountId={accountId} />}
         </View>
       )}
       ListEmptyComponent={

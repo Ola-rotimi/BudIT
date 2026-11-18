@@ -7,23 +7,22 @@ import { useQuery } from '@/hooks/useQuery';
 import { daysBetween, shortDate, todayISO, type Frequency } from '@/lib/dates';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
-import { ProScreen } from '@/components/ProLock';
-import { usePro } from '@/lib/pro';
+import { LimitNote } from '@/components/ProLock';
+import { useFreeLimit } from '@/lib/limits';
 
 const FREQUENCY_LABEL: Record<Frequency, string> = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly', once: 'One-off' };
 /** Rough monthly equivalent of each frequency, for the monthly commitment total. */
 const PER_MONTH: Record<Frequency, number> = { weekly: 52 / 12, monthly: 1, yearly: 1 / 12, once: 0 };
 
-const newBill = () => router.push('/bill');
 
 export default function BillsScreen() {
   const { money } = useMoney();
   const today = todayISO();
   const bills = useQuery(`bills:${today}`, listBills);
 
-  const { isPro } = usePro();
+  const limit = useFreeLimit('bills');
+  const newBill = () => limit.add('/bill');
 
-  if (!isPro) return <ProScreen screenTitle="Bills & subscriptions" title="Never miss a bill" message="BudT Pro tracks rent, utilities and subscriptions, warns you before they’re due and records payments in one tap. Any bills you’ve already added are kept." />;
   if (!bills) return <Loading />;
   const next30 = bills.filter((b) => daysBetween(today, b.due_date) <= 30).reduce((s, b) => s + b.amount, 0);
   const monthly = bills.reduce((s, b) => s + b.amount * PER_MONTH[b.frequency], 0);
@@ -61,6 +60,7 @@ export default function BillsScreen() {
           ))}
         </>
       )}
+      {!limit.isPro && limit.used !== undefined && <LimitNote feature="bills" used={limit.used} />}
     </Screen>
   );
 }

@@ -6,7 +6,7 @@ import { MonthSwitcher, useBudgetColor } from '@/components/finance';
 import { AppText, Button, Card, EmptyState, IconBadge, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
 import { budgetsWithSpending, categoryTotals } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
-import { currentMonthKey, daysInMonth, todayISO } from '@/lib/dates';
+import { currentMonthKey, periodProgress } from '@/lib/dates';
 import { formatPercent } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
@@ -31,7 +31,7 @@ export default function BudgetsScreen() {
   const ratio = total ? spent / total : 0;
   const isCurrent = month === currentMonthKey();
   // Fraction of the month elapsed, used to show whether spending is ahead of pace.
-  const elapsed = isCurrent ? Number(todayISO().slice(8, 10)) / daysInMonth(month) : 1;
+  const elapsed = isCurrent ? periodProgress(month).elapsed : 1;
   const openBudget = (categoryId?: number) =>
     router.push(categoryId ? { pathname: '/budget', params: { categoryId: String(categoryId) } } : '/budget');
 

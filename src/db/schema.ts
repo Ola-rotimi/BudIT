@@ -1,7 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { IconName, TxType } from './types';
 
-export const DATABASE_NAME = 'fintrack.db';
+/** Category used for transfer and mobile-money fees. */
+export const FEES_CATEGORY = 'Fees & Charges';
 
 const DEFAULT_CATEGORIES: [string, TxType, IconName, string][] = [
   ['Food & Dining', 'expense', 'restaurant', '#F97316'],
@@ -27,7 +28,7 @@ const DEFAULT_CATEGORIES: [string, TxType, IconName, string][] = [
   ['Other Income', 'income', 'cash', '#64748B'],
 ];
 
-const LATEST_VERSION = 2;
+const LATEST_VERSION = 4;
 
 /** Runs before the app renders (via SQLiteProvider onInit). */
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -102,7 +103,90 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       );
     `);
   }
-  // Future migrations: `if (version < 3) { ... }`
+  if (version < 3) {
+    await db.withTransactionAsync(async () => {
+      // Wallets: cash, bank and mobile money accounts. Existing transactions move into the first one.
+      // (account_id has no REFERENCES clause: SQLite can't add one with ALTER TABLE while foreign keys are on.)
+      await db.execAsync(`
+        CREATE TABLE accounts (
+          id INTEGER PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          icon TEXT NOT NULL,
+          color TEXT NOT NULL,
+          opening_balance INTEGER NOT NULL DEFAULT 0,
+          archived INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO accounts (id, name, kind, icon, color) VALUES (1, 'Main account', 'bank', 'wallet', '#0F766E');
+        ALTER TABLE transactions ADD COLUMN account_id INTEGER;
+        UPDATE transactions SET account_id = 1;
+        ALTER TABLE transactions ADD COLUMN recurring_id INTEGER;
+        CREATE INDEX idx_transactions_account ON transactions(account_id);
+
+        CREATE TABLE transfers (
+          id INTEGER PRIMARY KEY NOT NULL,
+          from_account INTEGER NOT NULL REFERENCES accounts(id),
+          to_account INTEGER NOT NULL REFERENCES accounts(id),
+          amount INTEGER NOT NULL,
+          fee_tx_id INTEGER,
+          date TEXT NOT NULL,
+          note TEXT NOT NULL DEFAULT '',
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE recurring (
+          id INTEGER PRIMARY KEY NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+          amount INTEGER NOT NULL,
+          category_id INTEGER NOT NULL REFERENCES categories(id),
+          account_id INTEGER,
+          note TEXT NOT NULL DEFAULT '',
+          frequency TEXT NOT NULL,
+          next_date TEXT NOT NULL,
+          anchor_day INTEGER,
+          active INTEGER NOT NULL DEFAULT 1
+        );
+      `);
+      // Transfer and mobile-money fees get their own category.
+      const fees = await db.getFirstAsync('SELECT id FROM categories WHERE name = ?', FEES_CATEGORY);
+      if (!fees) {
+        await db.runAsync('INSERT INTO categories (name, type, icon, color) VALUES (?, ?, ?, ?)', FEES_CATEGORY, 'expense', 'receipt', '#94A3B8');
+      }
+    });
+  }
+  if (version < 4) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE debts (
+          id INTEGER PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          balance INTEGER NOT NULL,
+          apr REAL NOT NULL DEFAULT 0,
+          min_payment INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        -- Rotating savings groups (ajo, esusu, susu, chama, stokvel). Contributions and payouts are
+        -- transfers between the member's account and the group's own account (pot_account_id).
+        CREATE TABLE savings_groups (
+          id INTEGER PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          contribution INTEGER NOT NULL,
+          frequency TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          members INTEGER NOT NULL,
+          my_turn INTEGER NOT NULL,
+          account_id INTEGER NOT NULL,
+          pot_account_id INTEGER NOT NULL,
+          active INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        ALTER TABLE transfers ADD COLUMN group_id INTEGER;
+        ALTER TABLE transfers ADD COLUMN group_cycle INTEGER;
+      `);
+    });
+  }
+  // Future migrations: `if (version < 5) { ... }`
 
   await db.execAsync(`PRAGMA user_version = ${LATEST_VERSION}`);
 }

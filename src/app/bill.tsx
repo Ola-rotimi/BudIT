@@ -10,13 +10,13 @@ import { todayISO, type Frequency } from '@/lib/dates';
 import { centsToInput, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { ProScreen } from '@/components/ProLock';
-import { usePro } from '@/lib/pro';
+import { LIMIT_COPY, useFreeLimit } from '@/lib/limits';
 
 export default function BillScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = params.id ? Number(params.id) : undefined;
   const db = useSQLiteContext();
-  const { isPro } = usePro();
+  const { canAdd } = useFreeLimit('bills');
   const { currency } = useSettings();
 
   const [name, setName] = useState('');
@@ -60,7 +60,9 @@ export default function BillScreen() {
     ]);
 
 
-  if (!isPro) return <ProScreen screenTitle="Bills & subscriptions" title="Never miss a bill" message="BudT Pro tracks rent, utilities and subscriptions, warns you before they’re due and records payments in one tap. Any bills you’ve already added are kept." />;
+  if (!id && canAdd === false) {
+    return <ProScreen screenTitle="Bills & subscriptions" title={LIMIT_COPY.bills.title} message={LIMIT_COPY.bills.message} />;
+  }
   return (
     <Screen>
       <Stack.Screen options={{ title: id ? 'Edit bill' : 'New bill', headerRight: id ? () => <HeaderDeleteButton label="Delete bill" onPress={remove} /> : undefined }} />

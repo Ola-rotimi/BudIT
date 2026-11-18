@@ -44,7 +44,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="tax"
-        options={{ title: 'Tax', headerTitle: 'Tax calculator', tabBarIcon: tabIcon('calculator') }}
+        options={{
+          title: 'Tax',
+          headerTitle: 'Tax calculator',
+          tabBarIcon: tabIcon('calculator'),
+          headerRight: () => <HeaderButton icon="document-text-outline" label="Annual summary" onPress={() => router.push('/tax-summary')} />,
+        }}
       />
       <Tabs.Screen
         name="pension"

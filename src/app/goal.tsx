@@ -12,13 +12,13 @@ import { centsToInput, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { ProScreen } from '@/components/ProLock';
-import { usePro } from '@/lib/pro';
+import { LIMIT_COPY, useFreeLimit } from '@/lib/limits';
 
 export default function GoalScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = params.id ? Number(params.id) : undefined;
   const db = useSQLiteContext();
-  const { isPro } = usePro();
+  const { canAdd } = useFreeLimit('goals');
   const t = useTheme();
   const { currency } = useSettings();
 
@@ -66,7 +66,7 @@ export default function GoalScreen() {
     ]);
 
 
-  if (!isPro) return <ProScreen screenTitle="Savings goals" title="Save towards what matters" message="BudT Pro tracks savings goals with target dates and tells you how much to put aside each month. Any goals you’ve already created are kept." />;
+  if (!id && canAdd === false) return <ProScreen screenTitle="Savings goals" title={LIMIT_COPY.goals.title} message={LIMIT_COPY.goals.message} />;
   return (
     <Screen>
       <Stack.Screen options={{ title: id ? 'Edit goal' : 'New goal', headerRight: id ? () => <HeaderDeleteButton label="Delete goal" onPress={remove} /> : undefined }} />

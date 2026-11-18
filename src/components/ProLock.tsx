@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { FREE_LIMITS, LIMIT_COPY, type LimitedFeature } from '@/lib/limits';
 import { BRAND, useTheme } from '@/lib/theme';
 import { AppText, Button, Card, Screen } from './ui';
 
@@ -28,6 +29,20 @@ export function ProScreen({ screenTitle, title, message }: { screenTitle: string
       <Stack.Screen options={{ title: screenTitle, headerRight: undefined }} />
       <ProLock title={title} message={message} />
     </Screen>
+  );
+}
+
+/** "Free plan: 1 of 1 savings goal used" with an upgrade link, under lists that have a free allowance. */
+export function LimitNote({ feature, used }: { feature: LimitedFeature; used: number }) {
+  const t = useTheme();
+  const limit = FREE_LIMITS[feature];
+  return (
+    <AppText variant="caption" style={{ textAlign: 'center' }}>
+      Free plan: {Math.min(used, limit)} of {limit} {LIMIT_COPY[feature].noun(limit)} used.{' '}
+      <AppText variant="caption" color={t.primary} weight="700" onPress={() => router.push('/paywall')}>
+        Get unlimited with Pro
+      </AppText>
+    </AppText>
   );
 }
 

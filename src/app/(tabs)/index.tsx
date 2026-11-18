@@ -6,9 +6,10 @@ import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { TransactionRow, useBudgetColor } from '@/components/finance';
 import { ProBadge } from '@/components/ProLock';
 import { AppText, Button, Card, EmptyState, IconBadge, ListRow, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
-import { allTimeTotals, budgetsWithSpending, listBills, listGoals, monthTotals, recentTransactions } from '@/db/queries';
+import { budgetsWithSpending, getSetting, listAccounts, listBills, listGoals, monthTotals, recentTransactions, transactionCount } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
-import { currentMonthKey, dayLabel, daysBetween, daysInMonth, monthLabel, todayISO } from '@/lib/dates';
+import { currentMonthKey, dayLabel, daysBetween, monthLabel, periodProgress, todayISO } from '@/lib/dates';
+import { BACKUP_REMINDER_DAYS, LAST_BACKUP_KEY } from '@/lib/backup';
 import { formatPercent } from '@/lib/money';
 import { takePendingRoute } from '@/lib/onboarding';
 import { usePro } from '@/lib/pro';
@@ -23,7 +24,7 @@ const HERO_MAX_SCALE = 1.3;
 export default function HomeScreen() {
   const t = useTheme();
   const { money } = useMoney();
-  const { currencyChosen, country } = useSettings();
+  const { currencyChosen, country, hideAmounts, setHideAmounts } = useSettings();
   const budgetColor = useBudgetColor();
   const { isPro } = usePro();
   const month = currentMonthKey();
@@ -36,26 +37,31 @@ export default function HomeScreen() {
   }, []);
 
   const data = useQuery(`home:${month}:${today}`, async (db) => {
-    const [totals, allTime, budgets, bills, goals, recent] = await Promise.all([
+    const [totals, accounts, budgets, bills, goals, recent, txCount, lastBackup] = await Promise.all([
       monthTotals(db, month),
-      allTimeTotals(db),
+      listAccounts(db),
       budgetsWithSpending(db, month),
       listBills(db),
       listGoals(db),
       recentTransactions(db, 5),
+      transactionCount(db),
+      getSetting(db, LAST_BACKUP_KEY),
     ]);
-    return { totals, allTime, budgets, bills, goals, recent };
+    return { totals, accounts, budgets, bills, goals, recent, txCount, lastBackup };
   });
 
   if (!data) return <Loading />;
-  const { totals, allTime, budgets, bills, goals, recent } = data;
+  const { totals, accounts, budgets, bills, goals, recent, txCount, lastBackup } = data;
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  // Nudge towards a backup once there's enough data to lose, and the last one is old (or never made).
+  const backupAgeDays = lastBackup ? daysBetween(lastBackup.slice(0, 10), today) : null;
+  const backupDue = txCount >= 20 && (backupAgeDays === null || backupAgeDays >= BACKUP_REMINDER_DAYS);
 
   const net = totals.income - totals.expense;
   const budgetTotal = budgets.reduce((s, b) => s + b.budget, 0);
   const budgetSpent = budgets.reduce((s, b) => s + b.spent, 0);
   const budgetRatio = budgetTotal ? budgetSpent / budgetTotal : 0;
-  const dayOfMonth = Number(today.slice(8, 10));
-  const daysLeft = daysInMonth(month) - dayOfMonth + 1;
+  const { daysLeft } = periodProgress(month, today);
   const upcoming = bills.filter((b) => daysBetween(today, b.due_date) <= 14).slice(0, 3);
   const activeGoals = goals.filter((g) => g.saved < g.target).slice(0, 2);
 
@@ -78,9 +84,18 @@ export default function HomeScreen() {
 
       <HeroCard>
         <View>
-          <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
-            {monthLabel(month)} · net
-          </AppText>
+          <View style={styles.heroTop}>
+            <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85, flex: 1 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
+              {monthLabel(month)} · net
+            </AppText>
+            <Pressable
+              onPress={() => setHideAmounts(!hideAmounts)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={hideAmounts ? 'Show amounts' : 'Hide amounts'}>
+              <Ionicons name={hideAmounts ? 'eye-off-outline' : 'eye-outline'} size={20} color={ON_HERO} />
+            </Pressable>
+          </View>
           <AppText
             variant="display"
             color={ON_HERO}
@@ -90,9 +105,11 @@ export default function HomeScreen() {
             maxFontSizeMultiplier={HERO_MAX_SCALE}>
             {money(net, { sign: true })}
           </AppText>
-          <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.8 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
-            All-time balance {money(allTime.income - allTime.expense)}
-          </AppText>
+          <Pressable onPress={() => router.push('/accounts')} accessibilityRole="button" hitSlop={6}>
+            <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
+              {accounts.length > 1 ? `Balance across ${accounts.length} accounts` : 'Balance'} {money(totalBalance)} ›
+            </AppText>
+          </Pressable>
         </View>
         <View style={styles.statPanel}>
           <HeroStat icon="arrow-down" label="Income" value={money(totals.income)} />
@@ -121,6 +138,19 @@ export default function HomeScreen() {
           onPress={() => router.push({ pathname: '/transaction', params: { type: 'income' } })}
         />
       </View>
+
+      {backupDue && (
+        <Card onPress={() => router.push('/settings')} style={styles.smartCard}>
+          <IconBadge icon="cloud-upload-outline" color={t.warning} />
+          <View style={{ flex: 1 }}>
+            <AppText weight="700">Back up your data</AppText>
+            <AppText variant="caption">
+              {backupAgeDays === null ? 'You haven’t made a backup yet.' : `Your last backup was ${backupAgeDays} days ago.`} Your records only live on this phone.
+            </AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={t.muted} />
+        </Card>
+      )}
 
       <Card onPress={() => router.push('/smart-budget')} style={styles.smartCard}>
         <IconBadge icon="sparkles" color={t.primary} />
@@ -160,7 +190,7 @@ export default function HomeScreen() {
         )}
       </Card>
 
-      {isPro && upcoming.length > 0 && (
+      {upcoming.length > 0 && (
         <Card>
           <SectionHeader title="Upcoming bills" action={{ label: 'All bills', onPress: () => router.push('/bills') }} />
           {upcoming.map((b) => {
@@ -185,7 +215,7 @@ export default function HomeScreen() {
         </Card>
       )}
 
-      {isPro && activeGoals.length > 0 && (
+      {activeGoals.length > 0 && (
         <Card>
           <SectionHeader title="Savings goals" action={{ label: 'All goals', onPress: () => router.push('/goals') }} />
           {activeGoals.map((g) => (
@@ -317,6 +347,7 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: 'row', gap: 12 },
   smartCard: { flexDirection: 'row', alignItems: 'center' },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   smartTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
 });

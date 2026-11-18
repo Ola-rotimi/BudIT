@@ -164,9 +164,23 @@ async function fetchQuote(db: SQLiteDatabase, currency: string, force: boolean):
     fetchJson<{ data_url?: string }>(`${API}/providers/${source.provider}`).catch(() => ({ data_url: undefined })),
   ]);
   const row = rows[0];
-  if (!row || !(row.rate > 0)) throw new Error(`${source.bank} has no rate for ${currency}`);
-  return { currency, perUsd: row.rate, date: row.date, sourceUrl: meta.data_url ?? null };
+  if (!row || !isPlausibleRate(row.rate) || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.date))) {
+    throw new Error(`${source.bank} has no valid rate for ${currency}`);
+  }
+  return { currency, perUsd: row.rate, date: row.date, sourceUrl: safeUrl(meta.data_url) };
 }
+
+/** A usable exchange rate: a finite positive number within any real currency's range per US dollar. */
+const isPlausibleRate = (rate: unknown): rate is number => typeof rate === 'number' && Number.isFinite(rate) && rate > 1e-6 && rate < 1e7;
+
+/** Only https links are kept, since the source link is opened from the app. */
+function safeUrl(url: unknown) {
+  return typeof url === 'string' && /^https:\/\/[^\s]+$/i.test(url) ? url : null;
+}
+
+/** Fresh rates that differ from a recent cached one by more than this factor are treated as bad data. */
+const MAX_JUMP = 3;
+const JUMP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Returns a fresh (or recently cached) official rate, falling back to the cache when offline. */
 export async function getRate(db: SQLiteDatabase, currency: string, force = false): Promise<FxQuote> {
@@ -174,6 +188,13 @@ export async function getRate(db: SQLiteDatabase, currency: string, force = fals
   if (cached && !force && Date.now() - new Date(cached.fetchedAt).getTime() < MAX_AGE_MS) return cached;
   try {
     const quote = { ...(await fetchQuote(db, currency, force)), fetchedAt: new Date().toISOString() };
+    // Guard against a bad feed: a currency moving more than 3x within a week of the last rate is
+    // rejected in favour of the cached one. Real devaluations, even sharp ones, are smaller than that
+    // over a few days; an older cache is always replaced so a genuine long-run move gets through.
+    const cacheAge = cached ? Date.now() - new Date(cached.fetchedAt).getTime() : Infinity;
+    if (cached && cacheAge < JUMP_WINDOW_MS && Math.max(quote.perUsd / cached.perUsd, cached.perUsd / quote.perUsd) > MAX_JUMP) {
+      throw new Error(`Implausible ${currency} rate ${quote.perUsd}; keeping ${cached.perUsd}`);
+    }
     await writeCache(db, quote);
     return quote;
   } catch (e) {

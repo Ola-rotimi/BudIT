@@ -31,7 +31,7 @@
     <img src="icon.svg" alt="">
     <h1>BudT Privacy Policy</h1>
   </header>
-  <p class="meta">Effective 3 November 2026</p>
+  <p class="meta">Effective 18 November 2026</p>
 
   <div class="summary">
     <strong>In short</strong>
@@ -54,9 +54,18 @@
     <li>budgets</li>
     <li>savings goals</li>
     <li>bills</li>
+    <li>accounts and wallets, transfers and recurring entries</li>
+    <li>debts and savings groups (ajo, esusu, chama and similar)</li>
     <li>your settings, such as country, currency and theme</li>
   </ul>
   <p>We don’t operate servers that receive this data, and we can’t see, access or recover it.</p>
+
+  <h2>How your data is protected</h2>
+  <ul>
+    <li><strong>Encryption on your device.</strong> In versions installed from the App Store or Google Play, BudT’s database is encrypted with AES-256 (SQLCipher). The encryption key is generated on your device and kept in its secure keystore (the iOS Keychain or Android Keystore). It is never sent to us or anyone else.</li>
+    <li><strong>App lock.</strong> You can require a PIN, and optionally Face ID or a fingerprint, to open BudT. Your PIN is stored only as a salted hash in the secure keystore, never in plain text. Face ID and fingerprint checks are carried out by your phone’s operating system; BudT never receives your biometric data.</li>
+    <li><strong>Privacy screen and hidden amounts.</strong> You can hide BudT’s contents in the recent-apps view and block screenshots, and mask balances on screen.</li>
+  </ul>
   <p>The tax, pension, loan and savings calculators run entirely on your device. Nothing you type into them is saved or sent anywhere.</p>
 
   <h2>Information we collect</h2>
@@ -71,6 +80,13 @@
     <li>basic device information, such as platform, app version, country/store region and IP address</li>
   </ul>
   <p>This information is used only to unlock Pro, restore purchases and give us anonymous sales totals. It isn’t used for advertising or tracking, and it’s never combined with what you’ve entered in BudT.</p>
+
+  <h2>Statement import, reminders and summaries</h2>
+  <ul>
+    <li><strong>Statement import.</strong> When you import a bank or mobile-money statement, BudT reads the file you choose on your device. The file is not uploaded anywhere, and BudT deletes its temporary copy after reading it.</li>
+    <li><strong>Reminders.</strong> Bill and daily reminders are local notifications scheduled by your phone. They don’t go through any server. While the app lock or hidden amounts is on, reminders leave out amounts so they don’t show on your lock screen.</li>
+    <li><strong>Annual summary.</strong> The PDF summary is created on your device and only goes where you choose to share it.</li>
+  </ul>
 
   <h2>Exchange rates</h2>
   <p>The currency converter and the “≈ in your currency” figures use official central bank exchange rates. To get them, BudT requests the rates from <a href="https://frankfurter.dev/">Frankfurter</a>, an open-source service that republishes rates from central banks.</p>
@@ -90,10 +106,10 @@
     <li>email</li>
   </ul>
   <p>Once shared, the file is handled by the service you choose under that service’s terms.</p>
-  <p>The backup file is not encrypted, so store it somewhere you trust. <em>Restore from backup</em> only reads the file you pick.</p>
+  <p>You can protect a backup with a password. The file is then encrypted with AES-256-GCM, using a key derived from your password (PBKDF2-SHA256), so nobody can read it without the password. We can’t recover a forgotten backup password. Backups without a password, and transaction exports (CSV), are not encrypted, so store them somewhere you trust. <em>Restore from backup</em> only reads the file you pick.</p>
 
   <h2>Device backups</h2>
-  <p>Your phone’s own backup features, such as Android’s automatic backup to Google Drive or iCloud backups on iPhone, may include BudT’s data, depending on your device settings. These backups are managed by Google or Apple, not by us.</p>
+  <p>On Android, BudT opts out of automatic backup to Google Drive, because its encrypted data couldn’t be opened without the key held on the original phone. On iPhone, iCloud or computer backups may include BudT’s encrypted data, depending on your device settings; these backups are managed by Apple, not by us. To move your data to a new phone, use <em>Back up data</em> in BudT.</p>
 
   <h2>Deleting your data</h2>
   <p>To delete your data:</p>

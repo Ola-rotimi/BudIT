@@ -1,0 +1,159 @@
+import { router, Stack } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { ProScreen } from '@/components/ProLock';
+import { AppText, Card, Divider, EmptyState, Field, HeaderButton, ListRow, Loading, Screen, Segmented, StatLine } from '@/components/ui';
+import { listDebts } from '@/db/queries';
+import { useQuery } from '@/hooks/useQuery';
+import { shortDate, toISODate } from '@/lib/dates';
+import { minimumsOnly, planPayoff, type Strategy } from '@/lib/debt';
+import { parseAmount } from '@/lib/money';
+import { usePro } from '@/lib/pro';
+import { useMoney, useSettings } from '@/lib/settings';
+import { useTheme } from '@/lib/theme';
+
+const addDebt = () => router.push('/debt');
+
+/** Date roughly `months` from now, for "debt-free by" figures. */
+function monthsFromNow(months: number) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return shortDate(toISODate(d));
+}
+
+export default function DebtsScreen() {
+  const t = useTheme();
+  const { isPro } = usePro();
+  const { money } = useMoney();
+  const { currency } = useSettings();
+  const debts = useQuery('debts:list', listDebts);
+  const [extra, setExtra] = useState('');
+  const [strategy, setStrategy] = useState<Strategy>('avalanche');
+
+  if (!isPro) {
+    return (
+      <ProScreen
+        screenTitle="Debt payoff"
+        title="Become debt-free faster"
+        message="BudT Pro builds a payoff plan for all your loans and cards, compares the avalanche and snowball methods and shows your debt-free date."
+      />
+    );
+  }
+  if (!debts) return <Loading />;
+
+  const input = debts.map((d) => ({ id: d.id, name: d.name, balance: d.balance, apr: d.apr, minPayment: d.min_payment }));
+  const extraCents = parseAmount(extra) ?? 0;
+  const plan = planPayoff(input, extraCents, strategy);
+  const other = planPayoff(input, extraCents, strategy === 'avalanche' ? 'snowball' : 'avalanche');
+  const mins = minimumsOnly(input);
+  const total = debts.reduce((s, d) => s + d.balance, 0);
+  const minTotal = debts.reduce((s, d) => s + d.min_payment, 0);
+
+  return (
+    <Screen>
+      <Stack.Screen options={{ title: 'Debt payoff', headerRight: () => <HeaderButton icon="add" label="Add debt" onPress={addDebt} /> }} />
+      {debts.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon="card-outline"
+            title="No debts added"
+            message="Add your loans, cards and app loans to see the fastest, cheapest way to clear them."
+            action={{ label: 'Add a debt', onPress: addDebt }}
+          />
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <AppText variant="label">Total owed</AppText>
+            <AppText variant="title" color={t.expense}>
+              {money(total)}
+            </AppText>
+            <AppText variant="caption">Minimum payments: {money(minTotal)} a month</AppText>
+          </Card>
+
+          <Card style={{ gap: 6 }}>
+            {debts.map((d, i) => (
+              <View key={d.id}>
+                {i > 0 && <Divider />}
+                <ListRow
+                  icon="card"
+                  iconColor={t.expense}
+                  title={d.name}
+                  subtitle={`${d.apr}% a year · min ${money(d.min_payment)}/month`}
+                  right={<AppText weight="700">{money(d.balance)}</AppText>}
+                  onPress={() => router.push({ pathname: '/debt', params: { id: String(d.id) } })}
+                />
+              </View>
+            ))}
+          </Card>
+
+          <Card>
+            <AppText variant="heading">Your plan</AppText>
+            <Field
+              label="Extra you can pay each month"
+              prefix={currency}
+              value={extra}
+              onChangeText={setExtra}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              hint="On top of the minimums. Even a little extra saves months."
+            />
+            <Segmented<Strategy>
+              value={strategy}
+              onChange={setStrategy}
+              options={[
+                { value: 'avalanche', label: 'Avalanche' },
+                { value: 'snowball', label: 'Snowball' },
+              ]}
+            />
+            <AppText variant="caption">
+              {strategy === 'avalanche'
+                ? 'Avalanche: extra money goes to the highest interest rate first. Saves the most interest.'
+                : 'Snowball: extra money goes to the smallest balance first. Quick wins keep you motivated.'}
+            </AppText>
+            {!plan.feasible ? (
+              <AppText color={t.expense}>
+                These payments don’t cover the interest, so the debt keeps growing. Increase the minimums or add an extra payment.
+              </AppText>
+            ) : (
+              <>
+                <View style={[styles.highlight, { backgroundColor: t.primarySoft }]}>
+                  <AppText variant="caption">Debt-free in</AppText>
+                  <AppText variant="title" color={t.primary}>
+                    {plan.months} month{plan.months === 1 ? '' : 's'}
+                  </AppText>
+                  <AppText variant="caption">around {monthsFromNow(plan.months)}</AppText>
+                </View>
+                <StatLine label="Interest you’ll pay" value={money(plan.totalInterest)} />
+                {mins.feasible && mins.totalInterest > plan.totalInterest && (
+                  <StatLine
+                    label="Saved vs minimums only"
+                    value={`${money(mins.totalInterest - plan.totalInterest)} · ${mins.months - plan.months} months sooner`}
+                    color={t.income}
+                  />
+                )}
+                {other.feasible && other.totalInterest !== plan.totalInterest && (
+                  <AppText variant="caption">
+                    {strategy === 'avalanche' ? 'Snowball' : 'Avalanche'} would take {other.months} months and cost {money(other.totalInterest)} in interest.
+                  </AppText>
+                )}
+                <Divider />
+                <AppText variant="label">Order to pay them off</AppText>
+                {plan.order.map((o, i) => (
+                  <StatLine key={o.id} label={`${i + 1}. ${o.name}`} value={`cleared ${monthsFromNow(o.month)}`} />
+                ))}
+              </>
+            )}
+          </Card>
+          <AppText variant="caption" style={{ textAlign: 'center' }}>
+            Estimates assume interest is charged monthly and rates stay the same.
+          </AppText>
+        </>
+      )}
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  highlight: { borderRadius: 14, padding: 14, alignItems: 'center', gap: 2 },
+});

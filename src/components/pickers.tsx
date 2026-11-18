@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { listCategories } from '@/db/queries';
+import { listAccounts, listCategories } from '@/db/queries';
 import type { IconName, TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
 import { SWATCHES, useTheme } from '@/lib/theme';
@@ -42,6 +42,37 @@ export function CategoryPicker({ type, value, onChange }: { type: TxType; value:
       <Pressable
         onPress={() => router.push({ pathname: '/category', params: { type } })}
         style={[styles.chip, { borderColor: t.border, borderStyle: 'dashed' }]}>
+        <Ionicons name="add" size={16} color={t.primary} />
+        <Text style={[styles.chipText, { color: t.primary }]}>New</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** Chips for choosing a wallet. Pass `exclude` to hide one (e.g. the "from" account in a transfer). */
+export function AccountPicker({ value, onChange, exclude }: { value: number | null; onChange: (id: number) => void; exclude?: number | null }) {
+  const t = useTheme();
+  const accounts = useQuery('accounts:picker', (db) => listAccounts(db));
+
+  return (
+    <View style={styles.wrap}>
+      {accounts
+        ?.filter((a) => a.id !== exclude)
+        .map((a) => {
+          const active = a.id === value;
+          return (
+            <Pressable
+              key={a.id}
+              onPress={() => onChange(a.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={[styles.chip, { borderColor: active ? a.color : t.border, backgroundColor: active ? `${a.color}22` : t.card }]}>
+              <Ionicons name={a.icon} size={16} color={a.color} />
+              <Text style={[styles.chipText, { color: t.text }]}>{a.name}</Text>
+            </Pressable>
+          );
+        })}
+      <Pressable onPress={() => router.push('/account')} style={[styles.chip, { borderColor: t.border, borderStyle: 'dashed' }]}>
         <Ionicons name="add" size={16} color={t.primary} />
         <Text style={[styles.chipText, { color: t.primary }]}>New</Text>
       </Pressable>

@@ -1,0 +1,100 @@
+/**
+ * Local notifications: bill reminders (the day before, at 9am) and an optional daily nudge to log
+ * spending. Everything is scheduled on the device; nothing goes through a server.
+ *
+ * Reminders are rebuilt from the database whenever data changes, so they always match the bills.
+ */
+import * as Notifications from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
+import type { SQLiteDatabase } from 'expo-sqlite';
+import { Platform } from 'react-native';
+import { getSetting, listBills, setSetting } from '@/db/queries';
+import { addDays, fromISODate, todayISO } from './dates';
+import { formatMoney } from './money';
+
+const CHANNEL = 'reminders';
+const PREFIX = 'budt-';
+/** iOS keeps at most 64 pending notifications per app; stay well under it. */
+const MAX_BILL_REMINDERS = 40;
+const BILL_HOUR = 9;
+
+export const REMINDER_KEYS = { bills: 'remindBills', daily: 'remindDaily' } as const;
+
+/** Daily reminder time as "HH:MM" (24-hour), or '' when off. */
+export type DailyTime = string;
+
+const isTime = (v: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+});
+
+/** Asks for permission (once) and sets up the Android channel. Returns whether notifications are allowed. */
+export async function ensurePermission() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Reminders', importance: AndroidImportance.DEFAULT });
+  }
+  const current = await Notifications.getPermissionsAsync();
+  if (current.granted) return true;
+  if (!current.canAskAgain) return false;
+  return (await Notifications.requestPermissionsAsync()).granted;
+}
+
+export async function readReminderSettings(db: SQLiteDatabase) {
+  const [bills, daily] = await Promise.all([getSetting(db, REMINDER_KEYS.bills), getSetting(db, REMINDER_KEYS.daily)]);
+  return { bills: bills === '1', daily: daily && isTime(daily) ? daily : '' };
+}
+
+export async function saveReminderSetting(db: SQLiteDatabase, key: keyof typeof REMINDER_KEYS, value: string) {
+  await setSetting(db, REMINDER_KEYS[key], value);
+}
+
+/**
+ * Replaces all of BudT's scheduled notifications with ones matching current data.
+ * `showAmounts` is false when amounts are hidden or the app is locked, so lock-screen previews
+ * never reveal figures.
+ */
+export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; showAmounts: boolean; currency: string }) {
+  const settings = await readReminderSettings(db);
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(scheduled.filter((n) => n.identifier.startsWith(PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
+
+  if (!settings.bills && !settings.daily) return;
+  if (!(await Notifications.getPermissionsAsync()).granted) return;
+  const channelId = Platform.OS === 'android' ? CHANNEL : undefined;
+
+  if (settings.daily) {
+    const [hour, minute] = settings.daily.split(':').map(Number);
+    await Notifications.scheduleNotificationAsync({
+      identifier: `${PREFIX}daily`,
+      content: { title: 'Anything to add to BudT?', body: 'Take 30 seconds to log today’s spending and stay on budget.' },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId },
+    });
+  }
+
+  // Bills are a Pro feature, so their reminders are too.
+  if (settings.bills && opts.isPro) {
+    const now = Date.now();
+    const today = todayISO();
+    const bills = (await listBills(db)).filter((b) => b.due_date >= today).slice(0, MAX_BILL_REMINDERS);
+    for (const b of bills) {
+      const due = fromISODate(b.due_date);
+      let when = addDays(due, -1);
+      when.setHours(BILL_HOUR, 0, 0, 0);
+      let label = 'due tomorrow';
+      if (when.getTime() <= now) {
+        // Too late for the day-before reminder: remind on the day instead, if that's still ahead.
+        when = new Date(due);
+        when.setHours(BILL_HOUR, 0, 0, 0);
+        label = 'due today';
+        if (when.getTime() <= now) continue;
+      }
+      const amount = opts.showAmounts ? ` (${formatMoney(b.amount, opts.currency)})` : '';
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${PREFIX}bill-${b.id}`,
+        content: { title: `${b.name} is ${label}`, body: `Your ${b.name} payment${amount} is ${label}. Mark it paid in BudT once it’s done.` },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, channelId },
+      });
+    }
+  }
+}

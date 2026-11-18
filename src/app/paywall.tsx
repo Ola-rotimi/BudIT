@@ -20,8 +20,11 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
     text: `Take-home pay with real PAYE bands, reliefs and payroll deductions for ${COUNTRIES.length} countries, ${AFRICAN_COUNT} of them in Africa.`,
   },
   { icon: 'umbrella', title: 'Pension planner', text: 'Your country’s pension scheme, contribution rates and retirement age, projected to retirement.' },
-  { icon: 'flag', title: 'Savings goals', text: 'Set targets and dates, and see how much to save each month.' },
-  { icon: 'calendar', title: 'Bills & subscriptions', text: 'Due-date reminders on Home and one-tap payment records.' },
+  { icon: 'flag', title: 'Unlimited savings goals', text: 'Save for several things at once, each with its own target date.' },
+  { icon: 'calendar', title: 'Unlimited bills, with reminders', text: 'A notification the day before every bill is due.' },
+  { icon: 'people', title: 'Unlimited savings groups', text: 'Track every ajo, esusu, susu, chama or stokvel you’re in.' },
+  { icon: 'download', title: 'Statement import', text: 'Bring in transactions from your bank or mobile-money CSV.' },
+  { icon: 'trending-down', title: 'Debt payoff planner', text: 'Avalanche or snowball, and your debt-free date.' },
   { icon: 'swap-horizontal', title: 'Currency converter', text: 'Official central bank exchange rates, with no parallel-market rates.' },
   { icon: 'trending-up', title: 'Loan & savings calculators', text: 'Repayments, overpayment savings and compound growth.' },
 ];

@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BarChart, DonutChart, Legend } from '@/components/charts';
 import { MonthSwitcher } from '@/components/finance';
+import { InflationCard } from '@/components/InflationCard';
 import { AppText, Card, EmptyState, IconBadge, Loading, ProgressBar, Screen, Segmented } from '@/components/ui';
 import { categoryTotals, monthlyTotals } from '@/db/queries';
 import type { TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
-import { currentMonthKey, daysInMonth, monthLabel, shiftMonth, todayISO } from '@/lib/dates';
+import { currentMonthKey, daysInMonth, monthLabel, periodProgress, shiftMonth } from '@/lib/dates';
 import { formatPercent } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
@@ -30,7 +31,7 @@ export default function InsightsScreen() {
   const previous = trend[trend.length - 2];
   const total = categories.reduce((s, c) => s + c.total, 0);
   const savingsRate = current.income > 0 ? (current.income - current.expense) / current.income : null;
-  const daysCounted = month === currentMonthKey() ? Number(todayISO().slice(8, 10)) : daysInMonth(month);
+  const daysCounted = month === currentMonthKey() ? daysInMonth(month) - periodProgress(month).daysLeft + 1 : daysInMonth(month);
   const expenseChange = previous.expense > 0 ? (current.expense - previous.expense) / previous.expense : null;
   const monthsWithData = trend.filter((m) => m.income || m.expense);
   const avgExpense = monthsWithData.length ? monthsWithData.reduce((s, m) => s + m.expense, 0) / monthsWithData.length : 0;
@@ -109,6 +110,7 @@ export default function InsightsScreen() {
           ]}
         />
       </Card>
+      <InflationCard month={month} />
     </Screen>
   );
 }

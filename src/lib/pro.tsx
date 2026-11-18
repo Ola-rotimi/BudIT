@@ -39,12 +39,17 @@ let configured = false;
 
 function configureOnce() {
   if (configured || !API_KEY) return configured;
-  Purchases.configure({ apiKey: API_KEY });
+  // Signed responses: a tampered or intercepted CustomerInfo is flagged instead of trusted.
+  Purchases.configure({ apiKey: API_KEY, entitlementVerificationMode: Purchases.ENTITLEMENT_VERIFICATION_MODE.INFORMATIONAL });
   configured = true;
   return true;
 }
 
-const hasPro = (info: CustomerInfo | null) => !!info?.entitlements.active[PRO_ENTITLEMENT];
+/** Active "pro" entitlement whose signature didn't fail verification (e.g. a patched or proxied response). */
+const hasPro = (info: CustomerInfo | null) => {
+  const entitlement = info?.entitlements.active[PRO_ENTITLEMENT];
+  return !!entitlement && entitlement.verification !== Purchases.VERIFICATION_RESULT.FAILED;
+};
 
 export function ProProvider({ children }: { children: ReactNode }) {
   const [info, setInfo] = useState<CustomerInfo | null>(null);

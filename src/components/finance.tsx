@@ -1,11 +1,42 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { TxRow } from '@/db/queries';
+import type { TransferRow as TransferRowData, TxRow } from '@/db/queries';
 import { currentMonthKey, monthLabel, shiftMonth } from '@/lib/dates';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { AppText, IconBadge } from './ui';
+
+/** A transfer between two of the user's accounts. Shown neutral, or as in/out when viewing one account. */
+export function TransferRow({ x, accountId, showDate }: { x: TransferRowData; accountId?: number; showDate?: string }) {
+  const t = useTheme();
+  const { money } = useMoney();
+  const direction = accountId === x.to_account ? 'in' : accountId === x.from_account ? 'out' : null;
+  return (
+    <Pressable
+      // Savings-group moves are managed from the group's own screen.
+      onPress={() =>
+        x.group_id
+          ? router.push({ pathname: '/savings-group', params: { id: String(x.group_id) } })
+          : router.push({ pathname: '/transfer', params: { id: String(x.id) } })
+      }
+      style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
+      <IconBadge icon="swap-horizontal" color={t.primary} size={40} />
+      <View style={{ flex: 1 }}>
+        <AppText weight="600" numberOfLines={1}>
+          {x.note || 'Transfer'}
+        </AppText>
+        <AppText variant="caption" numberOfLines={1}>
+          {[`${x.from_name} → ${x.to_name}`, x.fee ? `fee ${money(x.fee)}` : null, showDate].filter(Boolean).join(' · ')}
+        </AppText>
+      </View>
+      <AppText weight="700" color={direction === 'in' ? t.income : t.text} style={{ fontVariant: ['tabular-nums'] }}>
+        {direction === 'in' ? '+' : direction === 'out' ? '−' : ''}
+        {money(x.amount)}
+      </AppText>
+    </Pressable>
+  );
+}
 
 export function TransactionRow({ tx, showDate }: { tx: TxRow; showDate?: string }) {
   const t = useTheme();

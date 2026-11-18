@@ -20,9 +20,87 @@ export type Transaction = {
   /** Minor units (cents). Always positive; `type` carries the sign. */
   amount: number;
   category_id: number;
+  account_id: number | null;
+  /** Set when the transaction was created by a recurring rule. */
+  recurring_id: number | null;
   date: string;
   note: string;
   created_at: string;
+};
+
+export type AccountKind = 'cash' | 'bank' | 'mobile' | 'card' | 'savings';
+
+/** A wallet: cash, a bank account, mobile money (M-Pesa, MoMo, OPay…), a card or savings. */
+export type Account = {
+  id: number;
+  name: string;
+  kind: AccountKind;
+  icon: IconName;
+  color: string;
+  /** Balance before the first transaction recorded in BudT, in cents. Can be negative (e.g. a card). */
+  opening_balance: number;
+  archived: number;
+  created_at: string;
+};
+
+export type Transfer = {
+  id: number;
+  from_account: number;
+  to_account: number;
+  amount: number;
+  /** The expense transaction recording the transfer fee, if any. */
+  fee_tx_id: number | null;
+  date: string;
+  note: string;
+  /** Set for savings-group contributions and payouts. */
+  group_id: number | null;
+  group_cycle: number | null;
+  created_at: string;
+};
+
+export type Debt = {
+  id: number;
+  name: string;
+  /** Amount still owed, in cents. */
+  balance: number;
+  /** Yearly interest rate, %. */
+  apr: number;
+  min_payment: number;
+  created_at: string;
+};
+
+/** A rotating savings group: ajo, esusu, susu, chama, stokvel… */
+export type SavingsGroup = {
+  id: number;
+  name: string;
+  /** What each member puts in every cycle, in cents. */
+  contribution: number;
+  frequency: 'weekly' | 'monthly';
+  start_date: string;
+  members: number;
+  /** The cycle (1-based) in which this user collects the pot. */
+  my_turn: number;
+  /** The user's account contributions come from and the payout goes to. */
+  account_id: number;
+  /** BudT account tracking money in the group: contributions in, payout out. */
+  pot_account_id: number;
+  active: number;
+  created_at: string;
+};
+
+export type Recurring = {
+  id: number;
+  type: TxType;
+  amount: number;
+  category_id: number;
+  account_id: number | null;
+  note: string;
+  frequency: Exclude<Frequency, 'once'>;
+  /** Date of the next transaction this rule will add. */
+  next_date: string;
+  /** Day of the month the schedule started on, so monthly dates don't drift after short months. */
+  anchor_day: number | null;
+  active: number;
 };
 
 export type Budget = { category_id: number; amount: number };
