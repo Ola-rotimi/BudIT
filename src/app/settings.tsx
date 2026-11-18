@@ -8,6 +8,7 @@ import { Alert, Pressable, Share, StyleSheet, Switch, Text, View } from 'react-n
 import { TimeField } from '@/components/DateField';
 import { LanguagePicker } from '@/components/LanguagePicker';
 import { PasswordPrompt } from '@/components/PasswordPrompt';
+import { PinSetup, type PinMode } from '@/components/PinSetup';
 import { AppText, Card, Divider, ListRow, Screen, Segmented } from '@/components/ui';
 import { exportTransactionsCsv, getSetting, resetAllData } from '@/db/queries';
 import type { IconName } from '@/db/types';
@@ -26,14 +27,13 @@ import {
 } from '@/lib/backup';
 import { getCountry } from '@/lib/countries';
 import { WrongPasswordError } from '@/lib/crypto';
-import { shortDate } from '@/lib/dates';
+import { shortDate, toISODate } from '@/lib/dates';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
 import { ensurePermission, readReminderSettings, saveReminderSetting } from '@/lib/reminders';
 import { usePro } from '@/lib/pro';
 import { CURRENCIES, formatMoney } from '@/lib/money';
 import { biometricLabel, useSecurity } from '@/lib/security';
 import { useSettings } from '@/lib/settings';
-import { openPinScreen } from '@/lib/navigation';
 import { useTheme, type ThemePreference } from '@/lib/theme';
 import { tr, N_ } from '@/i18n';
 
@@ -58,6 +58,7 @@ export default function SettingsScreen() {
     useSettings();
   const security = useSecurity();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [pinMode, setPinMode] = useState<PinMode | null>(null);
   // Days since the last backup (null if never); undefined while loading.
   const backupAge = useQuery('settings:lastBackup', async (d) => {
     const last = await getSetting(d, LAST_BACKUP_KEY);
@@ -76,7 +77,7 @@ export default function SettingsScreen() {
     await saveReminderSetting(db, key, value);
   };
 
-  // Back to the tabs first so the walkthrough (which replaces them) has nothing stacked above it.
+  // Back to the tabs first; with onboarding reset, the tabs layout then redirects to the walkthrough.
   const replayTour = () => {
     if (router.canDismiss()) router.dismissAll();
     setOnboarded(false);
@@ -187,7 +188,13 @@ export default function SettingsScreen() {
           icon="sparkles"
           iconColor={t.accent}
           title={pro.isPro ? tr('BudT Pro is active') : tr('Upgrade to BudT Pro')}
-          subtitle={pro.isPro ? tr('Thanks for supporting BudT') : tr('Goals, bills, tax & pension, and every financial tool')}
+          subtitle={
+            pro.trial
+              ? tr('Free trial until {0}', [shortDate(toISODate(new Date(pro.trial.endsAt)))])
+              : pro.isPro
+                ? tr('Thanks for supporting BudT')
+                : tr('Goals, bills, tax & pension, and every financial tool')
+          }
           onPress={() => router.push('/paywall')}
         />
         {pro.isPro && pro.managementUrl ? (
@@ -222,7 +229,7 @@ export default function SettingsScreen() {
             security.config.enabled ? tr('{0}-digit PIN{1}', [security.config.pinLength, security.config.biometrics && security.biometricKind ? tr(' or {0}', [biometricLabel(security.biometricKind)]) : '']) : tr('Ask for a PIN whenever BudT opens')
           }
           value={security.config.enabled}
-          onChange={(on) => openPinScreen(on ? 'set' : 'disable')}
+          onChange={(on) => setPinMode(on ? 'set' : 'disable')}
         />
         {security.config.enabled && (
           <>
@@ -248,7 +255,7 @@ export default function SettingsScreen() {
               />
             </View>
             <Divider />
-            <ListRow icon="keypad-outline" iconColor={t.primary} title={tr('Change PIN')} onPress={() => openPinScreen('change')} />
+            <ListRow icon="keypad-outline" iconColor={t.primary} title={tr('Change PIN')} onPress={() => setPinMode('change')} />
           </>
         )}
         <Divider />
@@ -444,6 +451,7 @@ export default function SettingsScreen() {
         <AppText variant="caption">{tr('BudT {0}', [Constants.expoConfig?.version ?? ''])}</AppText>
       </View>
 
+      <PinSetup mode={pinMode} onClose={() => setPinMode(null)} />
       <PasswordPrompt
         visible={!!prompt}
         mode={prompt?.mode ?? 'enter'}

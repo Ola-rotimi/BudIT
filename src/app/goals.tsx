@@ -9,6 +9,7 @@ import { formatPercent } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { LimitNote } from '@/components/ProLock';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { useFreeLimit } from '@/lib/limits';
 import { tr } from '@/i18n';
 
@@ -25,7 +26,17 @@ export default function GoalsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Savings goals'), headerRight: () => <HeaderButton icon="add" label={tr('New goal')} onPress={newGoal} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Savings goals'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('New goal')} onPress={newGoal} />
+            </View>
+          ),
+        }}
+      />
       {goals.length === 0 ? (
         <Card>
           <EmptyState

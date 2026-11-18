@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { MonthSwitcher, TransactionRow, TransferRow } from '@/components/finance';
 import { AppText, EmptyState, HeaderButton, Segmented } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { getAccount, listTransactions, listTransfers, type TransferRow as TransferData, type TxRow } from '@/db/queries';
 import type { TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
@@ -80,6 +81,7 @@ export default function TransactionsScreen() {
               title: data?.account?.name ?? tr('Activity'),
               headerRight: () => (
                 <View style={{ flexDirection: 'row' }}>
+                  <HideAmountsButton />
                   {accountId ? (
                     <HeaderButton icon="create-outline" label={tr('Edit account')} onPress={() => router.push({ pathname: '/account', params: { id: String(accountId) } })} />
                   ) : null}

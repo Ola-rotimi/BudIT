@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, Platform, Pressable, StyleSheet, View 
 import { AppText, Button, Card, Screen } from '@/components/ui';
 import type { IconName } from '@/db/types';
 import { COUNTRIES } from '@/lib/countries';
+import { shortDate, toISODate } from '@/lib/dates';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import { loadPlans, usePro, type PlanOption } from '@/lib/pro';
 import { useTheme } from '@/lib/theme';
@@ -36,7 +37,7 @@ type Status = 'loading' | 'ready' | 'error';
 
 export default function PaywallScreen() {
   const t = useTheme();
-  const { isPro, available, purchase, restore, managementUrl } = usePro();
+  const { isPro, available, purchase, restore, managementUrl, trial } = usePro();
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [status, setStatus] = useState<Status>(available ? 'loading' : 'ready');
   const [selected, setSelected] = useState(0);
@@ -54,13 +55,21 @@ export default function PaywallScreen() {
   }, [available]);
 
   const plan = plans[selected];
+  const store = Platform.OS === 'ios' ? tr('App Store') : tr('Google Play');
 
   const buy = async () => {
     if (!plan) return;
     setBusy(true);
     try {
       if ((await purchase(plan.pkg)) === 'purchased') {
-        Alert.alert(tr('Welcome to BudT Pro'), tr('Thanks for supporting BudT! Everything is unlocked.'));
+        if (plan.trial) {
+          Alert.alert(
+            tr('Your free trial has started'),
+            tr('Everything is unlocked for {0}. You won’t be charged if you cancel at least 24 hours before the trial ends, in your {1} account settings.', [plan.trial, store]),
+          );
+        } else {
+          Alert.alert(tr('Welcome to BudT Pro'), tr('Thanks for supporting BudT! Everything is unlocked.'));
+        }
         goBack();
       }
     } catch {
@@ -83,14 +92,21 @@ export default function PaywallScreen() {
     }
   };
 
-  const store = Platform.OS === 'ios' ? tr('App Store') : tr('Google Play');
+  const anyTrial = plans.some((p) => p.trial);
+  const title = isPro
+    ? trial
+      ? tr('Your free trial is on')
+      : tr('You have BudT Pro')
+    : plan?.trial
+      ? tr('Try BudT Pro free for {0}', [plan.trial])
+      : tr('Unlock BudT Pro');
 
   return (
     <Screen>
       <Stack.Screen options={{ title: tr('BudT Pro') }} />
       <View style={styles.hero}>
         <Image source={require('../../assets/icon.png')} style={styles.icon} accessibilityIgnoresInvertColors />
-        <AppText variant="title">{isPro ? tr('You have BudT Pro') : tr('Unlock BudT Pro')}</AppText>
+        <AppText variant="title" style={{ textAlign: 'center' }}>{title}</AppText>
         <AppText style={{ textAlign: 'center', color: t.muted }}>{tr('Plan with goals and bills, know your real take-home pay and use every financial tool.')}</AppText>
       </View>
 
@@ -112,6 +128,14 @@ export default function PaywallScreen() {
         <Card style={{ alignItems: 'center' }}>
           <Ionicons name="checkmark-circle" size={36} color={t.income} />
           <AppText weight="700">{tr('Pro is active on this device.')}</AppText>
+          {trial ? (
+            <AppText variant="caption" style={{ textAlign: 'center' }}>
+              {tr('Free trial until {0}.', [shortDate(toISODate(new Date(trial.endsAt)))])}{' '}
+              {trial.willRenew
+                ? tr('Your plan then starts at its normal price unless you cancel at least 24 hours before.')
+                : tr('It won’t renew, so you won’t be charged.')}
+            </AppText>
+          ) : null}
           {managementUrl ? <Button title={tr('Manage subscription')} variant="secondary" onPress={() => Linking.openURL(managementUrl)} /> : null}
         </Card>
       ) : !available ? (
@@ -154,7 +178,17 @@ export default function PaywallScreen() {
               );
             })}
           </View>
-          <Button title={busy ? tr('Please wait…') : plan?.kind === 'lifetime' ? tr('Buy lifetime access') : tr('Continue')} icon="sparkles" onPress={buy} disabled={busy} />
+          <Button
+            title={busy ? tr('Please wait…') : plan?.kind === 'lifetime' ? tr('Buy lifetime access') : plan?.trial ? tr('Start free trial') : tr('Continue')}
+            icon="sparkles"
+            onPress={buy}
+            disabled={busy}
+          />
+          {plan?.trial ? (
+            <AppText variant="caption" style={{ textAlign: 'center' }}>
+              {tr('Nothing to pay today. Cancel at least 24 hours before your {0} trial ends and you won’t be charged.', [plan.trial])}
+            </AppText>
+          ) : null}
         </>
       )}
 
@@ -164,7 +198,9 @@ export default function PaywallScreen() {
         </Pressable>
       )}
 
-      <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Monthly and yearly plans renew automatically until cancelled. Cancel at least 24 hours before the end of the current period to avoid being charged for the next one. Manage or cancel any time in your {0} account settings. Lifetime is a one-time purchase.', [store])}</AppText>
+      <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Monthly and yearly plans renew automatically until cancelled. Cancel at least 24 hours before the end of the current period to avoid being charged for the next one. Manage or cancel any time in your {0} account settings. Lifetime is a one-time purchase.', [store])}
+        {anyTrial ? ` ${tr('A free trial is for new subscribers only. When it ends, the plan you chose starts and is charged to your {0} account unless you cancelled.', [store])}` : ''}
+      </AppText>
       <View style={styles.legal}>
         <Pressable onPress={() => Linking.openURL(TERMS_URL)} hitSlop={6}>
           <AppText variant="caption" color={t.primary}>{tr('Terms of Use')}</AppText>

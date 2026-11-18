@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Tabs } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 import { View, type ColorValue } from 'react-native';
 import { HeaderButton } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import type { IconName } from '@/db/types';
+import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
 
@@ -13,6 +15,9 @@ const tabIcon = (name: IconName) =>
 
 export default function TabLayout() {
   const t = useTheme();
+  const { onboarded } = useSettings();
+  // First launch (or "Replay walkthrough"): show the walkthrough instead of the tabs.
+  if (!onboarded) return <Redirect href="/welcome" />;
   return (
     <Tabs
       screenOptions={{
@@ -37,6 +42,7 @@ export default function TabLayout() {
           tabBarIcon: tabIcon('pie-chart'),
           headerRight: () => (
             <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
               <HeaderButton icon="sparkles-outline" label={tr('Smart budget')} onPress={() => router.push('/smart-budget')} />
               <HeaderButton icon="add" label={tr('Add budget')} onPress={() => router.push('/budget')} />
             </View>

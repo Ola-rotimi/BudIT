@@ -240,7 +240,7 @@ export function ListRow({
           {title}
         </AppText>
         {subtitle ? (
-          <AppText variant="caption" numberOfLines={1}>
+          <AppText variant="caption" numberOfLines={2}>
             {subtitle}
           </AppText>
         ) : null}

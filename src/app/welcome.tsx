@@ -47,8 +47,8 @@ export default function WelcomeScreen() {
   const finish = async (openSmartBudget = false) => {
     if (incomeCents > 0) await setSetting(db, SMART_BUDGET_KEY, JSON.stringify({ income } satisfies SmartBudgetInput));
     if (openSmartBudget) openAfterOnboarding('/smart-budget');
-    // Flipping this swaps the walkthrough for the tabs (see the protected routes in _layout).
     await setOnboarded(true);
+    router.replace('/');
   };
   const next = () => setIndex((i) => Math.min(i + 1, STEPS.length - 1));
   const back = () => setIndex((i) => Math.max(i - 1, 0));

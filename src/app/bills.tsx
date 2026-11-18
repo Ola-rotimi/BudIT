@@ -8,6 +8,7 @@ import { daysBetween, shortDate, todayISO, type Frequency } from '@/lib/dates';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { LimitNote } from '@/components/ProLock';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { useFreeLimit } from '@/lib/limits';
 import { N_, tr } from '@/i18n';
 
@@ -30,7 +31,17 @@ export default function BillsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Bills & subscriptions'), headerRight: () => <HeaderButton icon="add" label={tr('New bill')} onPress={newBill} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Bills & subscriptions'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('New bill')} onPress={newBill} />
+            </View>
+          ),
+        }}
+      />
       {bills.length === 0 ? (
         <Card>
           <EmptyState

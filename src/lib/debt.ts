@@ -16,6 +16,8 @@ export type PayoffPlan = {
   totalPaid: number;
   /** Debts in the order they're cleared, with the month each is paid off (1 = next month). */
   order: { id: number; name: string; month: number; interest: number }[];
+  /** Per year of the plan: interest charged, total paid and what's still owed at the end. */
+  yearly: { year: number; interest: number; paid: number; balance: number }[];
   /** False when payments never outrun interest (the plan is capped at MAX_MONTHS). */
   feasible: boolean;
 };
@@ -37,6 +39,9 @@ export function planPayoff(input: DebtInput[], extraMonthly: number, strategy: S
   let month = 0;
   let totalInterest = 0;
   let totalPaid = 0;
+  const yearly: PayoffPlan['yearly'] = [];
+  let yearInterest = 0;
+  let yearPaid = 0;
 
   while (debts.some((d) => d.balance > 0) && month < MAX_MONTHS) {
     month++;
@@ -46,6 +51,7 @@ export function planPayoff(input: DebtInput[], extraMonthly: number, strategy: S
       d.balance += interest;
       d.interest += interest;
       totalInterest += interest;
+      yearInterest += interest;
     }
     let left = budget;
     // Minimums first (never more than what's owed)…
@@ -55,6 +61,7 @@ export function planPayoff(input: DebtInput[], extraMonthly: number, strategy: S
       d.balance -= pay;
       left -= pay;
       totalPaid += pay;
+      yearPaid += pay;
     }
     // …then everything left goes to the target debt, rolling on to the next once it's cleared.
     while (left > 0) {
@@ -64,8 +71,16 @@ export function planPayoff(input: DebtInput[], extraMonthly: number, strategy: S
       t.balance -= pay;
       left -= pay;
       totalPaid += pay;
+      yearPaid += pay;
     }
     for (const d of debts) if (d.balance <= 0 && !d.paidOffMonth) d.paidOffMonth = month;
+
+    const owed = debts.reduce((s, d) => s + Math.max(0, d.balance), 0);
+    if (month % 12 === 0 || owed <= 0 || month === MAX_MONTHS) {
+      yearly.push({ year: Math.ceil(month / 12), interest: yearInterest, paid: yearPaid, balance: owed });
+      yearInterest = 0;
+      yearPaid = 0;
+    }
   }
 
   const feasible = debts.every((d) => d.balance <= 0);
@@ -78,6 +93,7 @@ export function planPayoff(input: DebtInput[], extraMonthly: number, strategy: S
       .filter((d) => d.paidOffMonth)
       .sort((a, b) => a.paidOffMonth - b.paidOffMonth)
       .map((d) => ({ id: d.id, name: d.name, month: d.paidOffMonth, interest: d.interest })),
+    yearly,
     feasible,
   };
 }

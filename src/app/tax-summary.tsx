@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ProScreen } from '@/components/ProLock';
 import { AppText, Button, Card, Divider, Loading, Screen, StatLine } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { categoryTotalsBetween } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { getCountry } from '@/lib/countries';
@@ -61,7 +62,7 @@ export default function TaxSummaryScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Annual summary') }} />
+      <Stack.Screen options={{ title: tr('Annual summary'), headerRight: () => <HideAmountsButton /> }} />
       <View style={styles.years}>
         <Pressable onPress={() => setYear(year - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr('Previous year')}>
           <Ionicons name="chevron-back" size={22} color={t.primary} />

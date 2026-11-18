@@ -11,33 +11,67 @@ export function loanPayment(principal: number, annualRatePct: number, months: nu
   return (principal * r) / (1 - Math.pow(1 + r, -months));
 }
 
+/** One year of a repayment schedule: interest charged, principal repaid and the balance left at the end. */
+export type LoanYear = { year: number; interest: number; principal: number; balance: number };
+
 export function simulateLoan(principal: number, annualRatePct: number, months: number, extraMonthly = 0) {
   const payment = loanPayment(principal, annualRatePct, months);
   const r = annualRatePct / 100 / 12;
+  const yearly: LoanYear[] = [];
+  const firstMonth = { interest: 0, principal: 0 };
+  // Nothing is being repaid, so there's no schedule.
+  if (principal <= 0 || payment + extraMonthly <= 0) {
+    return { payment, totalInterest: 0, totalPaid: Math.max(0, principal), months: 0, yearly, firstMonth };
+  }
   let balance = principal;
   let interest = 0;
   let count = 0;
+  let yearInterest = 0;
+  let yearPrincipal = 0;
   while (balance > 0.005 && count < 1200) {
     const i = balance * r;
     const pay = Math.min(balance + i, payment + extraMonthly);
+    if (count === 0) Object.assign(firstMonth, { interest: i, principal: pay - i });
     interest += i;
     balance = balance + i - pay;
     count++;
+    yearInterest += i;
+    yearPrincipal += pay - i;
+    if (count % 12 === 0 || balance <= 0.005 || count === 1200) {
+      yearly.push({ year: Math.ceil(count / 12), interest: yearInterest, principal: yearPrincipal, balance: Math.max(0, balance) });
+      yearInterest = 0;
+      yearPrincipal = 0;
+    }
   }
-  return { payment, totalInterest: interest, totalPaid: principal + interest, months: count };
+  return { payment, totalInterest: interest, totalPaid: principal + interest, months: count, yearly, firstMonth };
 }
 
 // ---------- Savings growth ----------
 
+/** One year of saving: deposits and interest earned that year, then the balance and total paid in at its end. */
+export type SavingsYear = { year: number; deposits: number; interest: number; balance: number; contributed: number };
+
 export function savingsGrowth(initial: number, monthly: number, annualRatePct: number, years: number) {
+  // Monthly rate equivalent to the yearly return.
   const r = Math.pow(1 + annualRatePct / 100, 1 / 12) - 1;
+  const months = Math.round(years * 12);
   let balance = initial;
-  const yearly: { year: number; balance: number; contributed: number }[] = [];
+  const yearly: SavingsYear[] = [];
   let contributed = initial;
-  for (let m = 1; m <= Math.round(years * 12); m++) {
-    balance = balance * (1 + r) + monthly;
+  let yearDeposits = 0;
+  let yearInterest = 0;
+  for (let m = 1; m <= months; m++) {
+    const interest = balance * r;
+    balance += interest + monthly;
     contributed += monthly;
-    if (m % 12 === 0) yearly.push({ year: m / 12, balance, contributed });
+    yearDeposits += monthly;
+    yearInterest += interest;
+    // A part year at the end (e.g. 2.5 years) still gets its own row.
+    if (m % 12 === 0 || m === months) {
+      yearly.push({ year: Math.ceil(m / 12), deposits: yearDeposits, interest: yearInterest, balance, contributed });
+      yearDeposits = 0;
+      yearInterest = 0;
+    }
   }
   return { balance, contributed, interest: balance - contributed, yearly };
 }
@@ -217,18 +251,27 @@ export function projectPension(p: PensionInput) {
   let employeeTotal = 0;
   let employerTotal = 0;
   let extraTotal = 0;
-  const yearly: { age: number; pot: number }[] = [];
+  /** Per year: contributions and investment growth that year, then the pot and total paid in at its end. */
+  const yearly: { age: number; pot: number; contributions: number; growth: number; contributed: number }[] = [];
+  let yearContributions = 0;
+  let yearGrowth = 0;
 
   for (let m = 1; m <= months; m++) {
     const pensionable = p.salaryCap > 0 ? Math.min(salary, p.salaryCap) : salary;
     const employee = (pensionable / 12) * (p.employeePct / 100);
     const employer = (pensionable / 12) * (p.employerPct / 100);
-    pot = pot * (1 + r) + employee + employer + p.extraMonthly;
+    const growth = pot * r;
+    pot += growth + employee + employer + p.extraMonthly;
     employeeTotal += employee;
     employerTotal += employer;
     extraTotal += p.extraMonthly;
+    yearContributions += employee + employer + p.extraMonthly;
+    yearGrowth += growth;
     if (m % 12 === 0) {
-      yearly.push({ age: p.currentAge + m / 12, pot });
+      const contributed = p.currentPot + employeeTotal + employerTotal + extraTotal;
+      yearly.push({ age: p.currentAge + m / 12, pot, contributions: yearContributions, growth: yearGrowth, contributed });
+      yearContributions = 0;
+      yearGrowth = 0;
       salary *= 1 + p.salaryGrowthPct / 100;
     }
   }

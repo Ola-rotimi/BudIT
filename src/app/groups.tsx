@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
 import { LimitNote } from '@/components/ProLock';
 import { AppText, Card, EmptyState, HeaderButton, IconBadge, Loading, ProgressBar, Screen } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listGroups } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { shortDate, todayISO } from '@/lib/dates';
@@ -24,7 +25,17 @@ export default function GroupsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Savings groups'), headerRight: () => <HeaderButton icon="add" label={tr('New group')} onPress={addGroup} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Savings groups'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('New group')} onPress={addGroup} />
+            </View>
+          ),
+        }}
+      />
       {groups.length === 0 ? (
         <Card>
           <EmptyState

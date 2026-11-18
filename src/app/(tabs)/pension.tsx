@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { BarChart } from '@/components/charts';
+import { BarChart, Legend } from '@/components/charts';
 import { CountryBanner, PresetNotes } from '@/components/CountryBanner';
 import { examplePayInputs, PayFields, payTotal, toBreakdown, type PayInputs } from '@/components/PayFields';
 import { AppText, Card, Divider, Field, Screen, StatLine } from '@/components/ui';
+import { YearTable } from '@/components/YearTable';
 import { getCountry, type CountryPreset, type PayKey } from '@/lib/countries';
 import { PAY_BASE_LABEL, payBases, projectPension, type PensionInput } from '@/lib/finance';
 import { ProLock } from '@/components/ProLock';
@@ -187,8 +188,30 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
               <AppText variant="heading">{tr('Pot by age')}</AppText>
               <BarChart
                 labels={points.map((p) => String(p.age))}
-                series={[{ color: t.primary, values: points.map((p) => p.pot) }]}
+                series={[
+                  { color: t.primary, values: points.map((p) => p.contributed) },
+                  { color: t.income, values: points.map((p) => p.pot) },
+                ]}
                 formatValue={(v) => major(v, true)}
+              />
+              <Legend
+                items={[
+                  { color: t.primary, label: tr('Paid in') },
+                  { color: t.income, label: tr('Pot') },
+                ]}
+              />
+            </Card>
+          )}
+
+          {r.yearly.length > 0 && (
+            <Card>
+              <AppText variant="heading">{tr('Growth year by year')}</AppText>
+              <AppText variant="caption">
+                {tr('Investment growth at {0}% a year, compounded monthly. Before inflation.', [inputs.returnPct])}
+              </AppText>
+              <YearTable
+                columns={[{ label: tr('Age') }, { label: tr('Paid in') }, { label: tr('Growth'), color: t.income }, { label: tr('Pot') }]}
+                rows={r.yearly.map((y) => ({ key: y.age, cells: [String(y.age), major(y.contributions, true), major(y.growth, true), major(y.pot, true)] }))}
               />
             </Card>
           )}

@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, View } from 'react-native';
 import { AppText, Card, Divider, EmptyState, HeaderButton, IconBadge, Loading, Screen } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listRecurring, stopRecurring, type RecurringRow } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { shortDate } from '@/lib/dates';
@@ -19,7 +20,17 @@ export default function RecurringScreen() {
   if (!rules) return <Loading />;
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Recurring'), headerRight: () => <HeaderButton icon="add" label={tr('Add recurring')} onPress={addNew} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Recurring'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('Add recurring')} onPress={addNew} />
+            </View>
+          ),
+        }}
+      />
       {rules.length === 0 ? (
         <Card>
           <EmptyState

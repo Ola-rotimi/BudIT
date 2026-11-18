@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ProScreen } from '@/components/ProLock';
 import { AppText, Card, Divider, EmptyState, Field, HeaderButton, ListRow, Loading, Screen, Segmented, StatLine } from '@/components/ui';
+import { YearTable } from '@/components/YearTable';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listDebts } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { shortDate, toISODate } from '@/lib/dates';
@@ -49,10 +51,23 @@ export default function DebtsScreen() {
   const mins = minimumsOnly(input);
   const total = debts.reduce((s, d) => s + d.balance, 0);
   const minTotal = debts.reduce((s, d) => s + d.min_payment, 0);
+  // Same monthly charge the payoff plan applies.
+  const interestOf = (d: { balance: number; apr: number }) => Math.round((d.balance * d.apr) / 100 / 12);
+  const monthlyInterest = debts.reduce((s, d) => s + interestOf(d), 0);
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Debt payoff'), headerRight: () => <HeaderButton icon="add" label={tr('Add debt')} onPress={addDebt} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Debt payoff'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('Add debt')} onPress={addDebt} />
+            </View>
+          ),
+        }}
+      />
       {debts.length === 0 ? (
         <Card>
           <EmptyState
@@ -70,6 +85,7 @@ export default function DebtsScreen() {
               {money(total)}
             </AppText>
             <AppText variant="caption">{tr('Minimum payments: {0} a month', [money(minTotal)])}</AppText>
+            <AppText variant="caption" color={t.expense}>{tr('Interest building up: about {0} a month', [money(monthlyInterest)])}</AppText>
           </Card>
 
           <Card style={{ gap: 6 }}>
@@ -80,7 +96,7 @@ export default function DebtsScreen() {
                   icon="card"
                   iconColor={t.expense}
                   title={d.name}
-                  subtitle={tr('{0}% a year · min {1}/month', [d.apr, money(d.min_payment)])}
+                  subtitle={`${tr('{0}% a year · min {1}/month', [d.apr, money(d.min_payment)])}\n${tr('{0} interest a month', [money(interestOf(d))])}`}
                   right={<AppText weight="700">{money(d.balance)}</AppText>}
                   onPress={() => router.push({ pathname: '/debt', params: { id: String(d.id) } })}
                 />
@@ -133,11 +149,27 @@ export default function DebtsScreen() {
                 <Divider />
                 <AppText variant="label">{tr('Order to pay them off')}</AppText>
                 {plan.order.map((o, i) => (
-                  <StatLine key={o.id} label={`${i + 1}. ${o.name}`} value={`cleared ${monthsFromNow(o.month)}`} />
+                  <View key={o.id} style={{ gap: 2 }}>
+                    <StatLine label={`${i + 1}. ${o.name}`} value={tr('cleared {0}', [monthsFromNow(o.month)])} />
+                    <AppText variant="caption">{tr('{0} interest paid on this debt', [money(o.interest)])}</AppText>
+                  </View>
                 ))}
               </>
             )}
           </Card>
+
+          {plan.feasible && plan.yearly.length > 0 && (
+            <Card>
+              <AppText variant="heading">{tr('Interest year by year')}</AppText>
+              <YearTable
+                columns={[{ label: tr('Year') }, { label: tr('Interest'), color: t.expense }, { label: tr('You pay') }, { label: tr('Still owed') }]}
+                rows={plan.yearly.map((y) => ({
+                  key: y.year,
+                  cells: [String(y.year), money(y.interest, { compact: true }), money(y.paid, { compact: true }), money(y.balance, { compact: true })],
+                }))}
+              />
+            </Card>
+          )}
           <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Estimates assume interest is charged monthly and rates stay the same.')}</AppText>
         </>
       )}

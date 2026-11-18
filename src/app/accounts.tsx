@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
 import { AppText, Button, Card, Divider, HeaderButton, IconBadge, ListRow, Loading, Screen } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listAccounts } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
@@ -20,7 +21,17 @@ export default function AccountsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Accounts'), headerRight: () => <HeaderButton icon="add" label={tr('Add account')} onPress={() => router.push('/account')} /> }} />
+      <Stack.Screen
+        options={{
+          title: tr('Accounts'),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderButton icon="add" label={tr('Add account')} onPress={() => router.push('/account')} />
+            </View>
+          ),
+        }}
+      />
       <Card>
         <AppText variant="label">{tr('Total across {0} account{1}', [accounts.length, accounts.length === 1 ? '' : 's'])}</AppText>
         <AppText variant="title" color={total < 0 ? t.expense : undefined}>

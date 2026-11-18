@@ -5,6 +5,7 @@ import { BarChart, DonutChart, Legend } from '@/components/charts';
 import { MonthSwitcher } from '@/components/finance';
 import { InflationCard } from '@/components/InflationCard';
 import { AppText, Card, EmptyState, IconBadge, Loading, ProgressBar, Screen, Segmented } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { categoryTotals, monthlyTotals } from '@/db/queries';
 import type { TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
@@ -39,7 +40,7 @@ export default function InsightsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('Insights') }} />
+      <Stack.Screen options={{ title: tr('Insights'), headerRight: () => <HideAmountsButton /> }} />
       <MonthSwitcher month={month} onChange={setMonth} />
 
       <View style={styles.grid}>

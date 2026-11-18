@@ -15,14 +15,13 @@ import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
 
 /**
- * The tabs sit beneath every other screen, so a modal reached by a deep link or a dev reload (e.g.
- * /pin) still opens as a modal with somewhere to go back to. While the walkthrough guard hides the
- * tabs, the router falls back to the first available screen (the walkthrough).
+ * Home sits beneath any screen opened at launch (a dev reload or a link restoring e.g. /bill), so
+ * closing it always lands somewhere. Safe because no screens are behind guards.
  */
 export const unstable_settings = { anchor: '(tabs)' };
 
 /** Form screens presented as modals over the current screen. */
-const MODALS = ['transaction', 'budget', 'goal', 'contribute', 'bill', 'category', 'country', 'paywall', 'pin', 'account', 'transfer', 'debt', 'group-form'];
+const MODALS = ['transaction', 'budget', 'goal', 'contribute', 'bill', 'category', 'country', 'paywall', 'account', 'transfer', 'debt', 'group-form'];
 
 export default function RootLayout() {
   const t = useTheme();
@@ -95,18 +94,17 @@ function DatabaseGate({ children }: { children: ReactNode }) {
   );
 }
 
-/** First launch shows only the walkthrough; finishing it swaps in the tabs automatically. */
+/**
+ * Every screen is always registered. The walkthrough is enforced by the tabs layout (it redirects
+ * to /welcome until onboarding is done), not by guards, so a screen restored at launch can't make
+ * the navigator redirect in a loop.
+ */
 function RootStack() {
   const t = useTheme();
-  const { onboarded } = useSettings();
   return (
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: t.primary, headerTitleStyle: { color: t.text } }}>
-      <Stack.Protected guard={onboarded}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: tr('Home') }} />
-      </Stack.Protected>
-      <Stack.Protected guard={!onboarded}>
-        <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade' }} />
-      </Stack.Protected>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false, title: tr('Home') }} />
+      <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade', gestureEnabled: false }} />
       <Stack.Screen name="smart-budget" options={{ title: tr('Smart budget') }} />
       {MODALS.map((name) => (
         <Stack.Screen key={name} name={name} options={{ presentation: 'modal' }} />

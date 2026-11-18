@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { BarChart, Legend } from '@/components/charts';
 import { ProLock } from '@/components/ProLock';
 import { AppText, Card, Divider, Field, Screen, StatLine } from '@/components/ui';
+import { YearTable } from '@/components/YearTable';
 import { savingsGrowth } from '@/lib/finance';
 import { parseNumber } from '@/lib/money';
 import { usePro } from '@/lib/pro';
@@ -67,6 +68,19 @@ export default function SavingsCalculator() {
                   { color: t.primary, label: tr('Contributed') },
                   { color: t.income, label: tr('Balance') },
                 ]}
+              />
+            </Card>
+          )}
+
+          {result.yearly.length > 0 && (
+            <Card>
+              <AppText variant="heading">{tr('Interest year by year')}</AppText>
+              <AppText variant="caption">
+                {tr('Interest compounds monthly: each year earns interest on the interest before it. Starting amount: {0}.', [major(parseNumber(initial))])}
+              </AppText>
+              <YearTable
+                columns={[{ label: tr('Year') }, { label: tr('Deposits') }, { label: tr('Interest'), color: t.income }, { label: tr('Balance') }]}
+                rows={result.yearly.map((y) => ({ key: y.year, cells: [String(y.year), major(y.deposits, true), major(y.interest, true), major(y.balance, true)] }))}
               />
             </Card>
           )}

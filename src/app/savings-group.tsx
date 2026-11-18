@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Card, Divider, HeaderDeleteButton, Loading, Screen, StatLine } from '@/components/ui';
+import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { endGroup, getGroup, groupTransfers, recordGroupMove, undoGroupMove, type GroupRow } from '@/db/queries';
 import type { Transfer } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
@@ -48,7 +49,17 @@ export default function SavingsGroupScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: g.name, headerRight: () => <HeaderDeleteButton label={tr('End group')} icon="archive-outline" onPress={end} /> }} />
+      <Stack.Screen
+        options={{
+          title: g.name,
+          headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <HideAmountsButton />
+              <HeaderDeleteButton label={tr('End group')} icon="archive-outline" onPress={end} />
+            </View>
+          ),
+        }}
+      />
       <Card>
         <StatLine label={tr('Your payout')} value={tr('{0} · cycle {1}', [money(payoutAmount(g)), g.my_turn])} bold />
         <StatLine label={tr('Paid in so far')} value={tr('{0} ({1} of {2})', [money(contributed), paid.size, g.members])} />
