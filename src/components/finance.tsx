@@ -11,8 +11,10 @@ import { tr } from '@/i18n';
 /** A transfer between two of the user's accounts. Shown neutral, or as in/out when viewing one account. */
 export function TransferRow({ x, accountId, showDate }: { x: TransferRowData; accountId?: number; showDate?: string }) {
   const t = useTheme();
-  const { money } = useMoney();
+  const { moneyIn } = useMoney();
   const direction = accountId === x.to_account ? 'in' : accountId === x.from_account ? 'out' : null;
+  // Money arriving in a different currency shows the amount received.
+  const shown = direction === 'in' && x.to_amount !== null ? moneyIn(x.to_amount, x.to_currency) : moneyIn(x.amount, x.from_currency);
   return (
     <Pressable
       // Savings-group moves are managed from the group's own screen.
@@ -28,12 +30,12 @@ export function TransferRow({ x, accountId, showDate }: { x: TransferRowData; ac
           {x.note || tr('Transfer')}
         </AppText>
         <AppText variant="caption" numberOfLines={1}>
-          {[`${x.from_name} → ${x.to_name}`, x.fee ? `fee ${money(x.fee)}` : null, showDate].filter(Boolean).join(' · ')}
+          {[`${x.from_name} → ${x.to_name}`, x.fee ? tr('fee {0}', [moneyIn(x.fee, x.from_currency)]) : null, showDate].filter(Boolean).join(' · ')}
         </AppText>
       </View>
       <AppText weight="700" color={direction === 'in' ? t.income : t.text} style={{ fontVariant: ['tabular-nums'] }}>
         {direction === 'in' ? '+' : direction === 'out' ? '−' : ''}
-        {money(x.amount)}
+        {shown}
       </AppText>
     </Pressable>
   );
@@ -41,7 +43,7 @@ export function TransferRow({ x, accountId, showDate }: { x: TransferRowData; ac
 
 export function TransactionRow({ tx, showDate }: { tx: TxRow; showDate?: string }) {
   const t = useTheme();
-  const { money } = useMoney();
+  const { money, moneyIn } = useMoney();
   const income = tx.type === 'income';
   return (
     <Pressable
@@ -56,10 +58,18 @@ export function TransactionRow({ tx, showDate }: { tx: TxRow; showDate?: string 
           {[tx.note ? tr(tx.category_name) : null, showDate].filter(Boolean).join(' · ') || (income ? tr('Income') : tr('Expense'))}
         </AppText>
       </View>
-      <AppText weight="700" color={income ? t.income : t.text} style={{ fontVariant: ['tabular-nums'] }}>
-        {income ? '+' : '−'}
-        {money(tx.amount)}
-      </AppText>
+      <View style={{ alignItems: 'flex-end' }}>
+        <AppText weight="700" color={income ? t.income : t.text} style={{ fontVariant: ['tabular-nums'] }}>
+          {income ? '+' : '−'}
+          {tx.orig_currency && tx.orig_amount !== null ? moneyIn(tx.orig_amount, tx.orig_currency) : money(tx.amount)}
+        </AppText>
+        {/* Paid in another currency: also show what it counts as in budgets. */}
+        {tx.orig_currency ? (
+          <AppText variant="caption" style={{ fontVariant: ['tabular-nums'] }}>
+            ≈ {money(tx.amount)}
+          </AppText>
+        ) : null}
+      </View>
     </Pressable>
   );
 }

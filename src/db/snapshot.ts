@@ -3,26 +3,41 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { notifyChange } from './events';
 import { tr } from '@/i18n';
 
-/** 2 added accounts, transfers and recurring rules; 3 added debts and savings groups. Older backups still restore. */
-export const SNAPSHOT_FORMAT = 3;
+/**
+ * 2 added accounts, transfers and recurring rules; 3 added debts and savings groups; 4 added
+ * account currencies, IOUs, challenges and net worth history. Older backups still restore.
+ */
+export const SNAPSHOT_FORMAT = 4;
 
 /** Columns copied for each table, in insert order (parents before children). */
 const TABLES = {
   categories: ['id', 'name', 'type', 'icon', 'color', 'archived'],
-  accounts: ['id', 'name', 'kind', 'icon', 'color', 'opening_balance', 'archived', 'created_at'],
-  transactions: ['id', 'type', 'amount', 'category_id', 'account_id', 'recurring_id', 'date', 'note', 'created_at'],
+  accounts: ['id', 'name', 'kind', 'icon', 'color', 'opening_balance', 'archived', 'currency', 'created_at'],
+  transactions: ['id', 'type', 'amount', 'category_id', 'account_id', 'recurring_id', 'date', 'note', 'orig_amount', 'orig_currency', 'created_at'],
   budgets: ['category_id', 'amount'],
   goals: ['id', 'name', 'target', 'saved', 'deadline', 'color', 'icon', 'created_at'],
   bills: ['id', 'name', 'amount', 'category_id', 'due_date', 'frequency', 'active'],
   recurring: ['id', 'type', 'amount', 'category_id', 'account_id', 'note', 'frequency', 'next_date', 'anchor_day', 'active'],
   savings_groups: ['id', 'name', 'contribution', 'frequency', 'start_date', 'members', 'my_turn', 'account_id', 'pot_account_id', 'active', 'created_at'],
-  transfers: ['id', 'from_account', 'to_account', 'amount', 'fee_tx_id', 'date', 'note', 'group_id', 'group_cycle', 'created_at'],
+  transfers: ['id', 'from_account', 'to_account', 'amount', 'fee_tx_id', 'date', 'note', 'group_id', 'group_cycle', 'to_amount', 'created_at'],
   debts: ['id', 'name', 'balance', 'apr', 'min_payment', 'created_at'],
+  ious: ['id', 'person', 'direction', 'amount', 'repaid', 'note', 'date', 'due_date', 'created_at'],
+  challenges: ['id', 'kind', 'category_id', 'amount', 'start_date', 'end_date', 'active', 'created_at'],
+  net_worth: ['month', 'assets', 'liabilities', 'recorded_at'],
   settings: ['key', 'value'],
 } as const;
 
 /** Tables each backup format introduced; older backups restore them as empty. */
-const ADDED_IN: Partial<Record<TableName, number>> = { accounts: 2, recurring: 2, transfers: 2, savings_groups: 3, debts: 3 };
+const ADDED_IN: Partial<Record<TableName, number>> = {
+  accounts: 2,
+  recurring: 2,
+  transfers: 2,
+  savings_groups: 3,
+  debts: 3,
+  ious: 4,
+  challenges: 4,
+  net_worth: 4,
+};
 
 type TableName = keyof typeof TABLES;
 type Row = Record<string, string | number | null>;
@@ -68,7 +83,8 @@ export async function importSnapshot(db: SQLiteDatabase, snapshot: Snapshot) {
       // Children first so foreign keys never point at missing rows.
       await db.execAsync(
         `DELETE FROM transfers; DELETE FROM savings_groups; DELETE FROM debts; DELETE FROM recurring; DELETE FROM budgets;
-         DELETE FROM bills; DELETE FROM transactions; DELETE FROM goals; DELETE FROM accounts; DELETE FROM categories; DELETE FROM settings;`,
+         DELETE FROM bills; DELETE FROM transactions; DELETE FROM goals; DELETE FROM ious; DELETE FROM challenges; DELETE FROM net_worth;
+         DELETE FROM accounts; DELETE FROM categories; DELETE FROM settings;`,
       );
       for (const [name, columns] of entries()) {
         for (const row of snapshot.tables[name]) {

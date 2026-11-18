@@ -28,7 +28,7 @@ const DEFAULT_CATEGORIES: [string, TxType, IconName, string][] = [
   ['Other Income', 'income', 'cash', '#64748B'],
 ];
 
-const LATEST_VERSION = 4;
+const LATEST_VERSION = 5;
 
 /** Runs before the app renders (via SQLiteProvider onInit). */
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -186,7 +186,53 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       `);
     });
   }
-  // Future migrations: `if (version < 5) { ... }`
+  if (version < 5) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        -- Accounts in another currency (e.g. a USD domiciliary account). NULL = the home currency.
+        ALTER TABLE accounts ADD COLUMN currency TEXT;
+        -- Transactions on such an account: amount stays in the home currency (converted at the official
+        -- rate when recorded) so every total still adds up; orig_* keep what was actually paid.
+        ALTER TABLE transactions ADD COLUMN orig_amount INTEGER;
+        ALTER TABLE transactions ADD COLUMN orig_currency TEXT;
+        -- Amount credited to the receiving account when it's in a different currency.
+        ALTER TABLE transfers ADD COLUMN to_amount INTEGER;
+
+        -- Money lent and borrowed between people, including shares of split bills.
+        CREATE TABLE ious (
+          id INTEGER PRIMARY KEY NOT NULL,
+          person TEXT NOT NULL,
+          direction TEXT NOT NULL CHECK (direction IN ('owed_to_me', 'i_owe')),
+          amount INTEGER NOT NULL,
+          repaid INTEGER NOT NULL DEFAULT 0,
+          note TEXT NOT NULL DEFAULT '',
+          date TEXT NOT NULL,
+          due_date TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE challenges (
+          id INTEGER PRIMARY KEY NOT NULL,
+          kind TEXT NOT NULL CHECK (kind IN ('no_spend', 'category_cap', 'spend_cap')),
+          category_id INTEGER,
+          amount INTEGER,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          active INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- One row per calendar month, updated through the month, for the net worth chart.
+        CREATE TABLE net_worth (
+          month TEXT PRIMARY KEY NOT NULL,
+          assets INTEGER NOT NULL,
+          liabilities INTEGER NOT NULL,
+          recorded_at TEXT NOT NULL
+        );
+      `);
+    });
+  }
+  // Future migrations: `if (version < 6) { ... }`
 
   await db.execAsync(`PRAGMA user_version = ${LATEST_VERSION}`);
 }

@@ -5,6 +5,8 @@ import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'reac
 import { Alert, useColorScheme } from 'react-native';
 import { BackgroundJobs } from '@/components/BackgroundJobs';
 import { LockScreen } from '@/components/LockScreen';
+import { ReauthProvider } from '@/components/Reauth';
+import { SecurityChecks } from '@/components/SecurityChecks';
 import { ScreenshotNotice } from '@/components/ScreenshotNotice';
 import { keyStatement, PLAIN_DB, prepareDatabase, type PreparedDatabase } from '@/db/encryption';
 import { migrateDbIfNeeded } from '@/db/schema';
@@ -21,7 +23,7 @@ import { tr } from '@/i18n';
 export const unstable_settings = { anchor: '(tabs)' };
 
 /** Form screens presented as modals over the current screen. */
-const MODALS = ['transaction', 'budget', 'goal', 'contribute', 'bill', 'category', 'country', 'paywall', 'account', 'transfer', 'debt', 'group-form'];
+const MODALS = ['transaction', 'budget', 'goal', 'contribute', 'bill', 'category', 'country', 'paywall', 'account', 'transfer', 'debt', 'group-form', 'iou', 'challenge'];
 
 export default function RootLayout() {
   const t = useTheme();
@@ -38,10 +40,13 @@ export default function RootLayout() {
           <ProProvider>
             <LanguageRoot>
               <ThemeProvider value={navTheme}>
-                <StatusBar style="auto" />
-                <BackgroundJobs />
-                <RootStack />
-                <ScreenshotNotice />
+                <ReauthProvider>
+                  <StatusBar style="auto" />
+                  <BackgroundJobs />
+                  <SecurityChecks />
+                  <RootStack />
+                  <ScreenshotNotice />
+                </ReauthProvider>
               </ThemeProvider>
             </LanguageRoot>
           </ProProvider>

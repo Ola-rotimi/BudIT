@@ -25,6 +25,9 @@ export type Transaction = {
   recurring_id: number | null;
   date: string;
   note: string;
+  /** For an account in another currency: the amount in that currency (`amount` is the home-currency value). */
+  orig_amount: number | null;
+  orig_currency: string | null;
   created_at: string;
 };
 
@@ -40,6 +43,8 @@ export type Account = {
   /** Balance before the first transaction recorded in BudT, in cents. Can be negative (e.g. a card). */
   opening_balance: number;
   archived: number;
+  /** Currency the account holds, e.g. 'USD' for a domiciliary account. Null = the home currency. */
+  currency: string | null;
   created_at: string;
 };
 
@@ -55,6 +60,40 @@ export type Transfer = {
   /** Set for savings-group contributions and payouts. */
   group_id: number | null;
   group_cycle: number | null;
+  /** Amount received when the two accounts hold different currencies (null = same as `amount`). */
+  to_amount: number | null;
+  created_at: string;
+};
+
+export type IouDirection = 'owed_to_me' | 'i_owe';
+
+/** Money lent to or borrowed from someone, or their share of a split bill. */
+export type Iou = {
+  id: number;
+  person: string;
+  direction: IouDirection;
+  amount: number;
+  /** How much has been paid back so far. */
+  repaid: number;
+  note: string;
+  date: string;
+  due_date: string | null;
+  created_at: string;
+};
+
+export type ChallengeKind = 'no_spend' | 'category_cap' | 'spend_cap';
+
+export type Challenge = {
+  id: number;
+  kind: ChallengeKind;
+  /** For `category_cap`. */
+  category_id: number | null;
+  /** Spending limit for the whole challenge (caps only). */
+  amount: number | null;
+  start_date: string;
+  /** Last day of the challenge (inclusive). */
+  end_date: string;
+  active: number;
   created_at: string;
 };
 

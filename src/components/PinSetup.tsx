@@ -7,10 +7,15 @@ import { useTheme } from '@/lib/theme';
 import { PinPad } from './PinPad';
 import { AppText, Segmented } from './ui';
 
-export type PinMode = 'set' | 'change' | 'disable';
+export type PinMode = 'set' | 'change' | 'disable' | 'safe';
 type Step = 'current' | 'new' | 'confirm';
 
-const TITLES: Record<PinMode, string> = { set: N_('Set up app lock'), change: N_('Change PIN'), disable: N_('Turn off app lock') };
+const TITLES: Record<PinMode, string> = {
+  set: N_('Set up app lock'),
+  change: N_('Change PIN'),
+  disable: N_('Turn off app lock'),
+  safe: N_('Set a safe PIN'),
+};
 
 /**
  * Sets up, changes or turns off the app lock, as a pop-up over Settings. Not a route, so it can't be
@@ -29,6 +34,7 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
   const t = useTheme();
   const security = useSecurity();
   const [step, setStep] = useState<Step>(mode === 'set' ? 'new' : 'current');
+  // A safe PIN always has the same length as the real one, so the lock screen looks the same.
   const [length, setLength] = useState<4 | 6>(security.config.pinLength);
   const [first, setFirst] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -62,9 +68,14 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
     setStep('new');
   };
 
-  const onNew = (pin: string) => {
+  const onNew = async (pin: string) => {
     if (/^(\d)\1+$/.test(pin) || '0123456789'.includes(pin) || '9876543210'.includes(pin)) {
       setMessage(tr('That PIN is too easy to guess. Avoid repeated or sequential digits.'));
+      return false;
+    }
+    // The real PIN and the safe PIN must differ, or the lock screen couldn't tell them apart.
+    if (mode === 'safe' ? await security.isRealPin(pin) : await security.isSafePin(pin)) {
+      setMessage(tr('Your app PIN and safe PIN must be different.'));
       return false;
     }
     setFirst(pin);
@@ -78,12 +89,19 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
       setStep('new');
       return false;
     }
-    if (await attempt(() => (mode === 'set' ? security.enableLock(pin, length) : security.changePin(pin, length)))) onClose();
+    const save = () => (mode === 'set' ? security.enableLock(pin, length) : mode === 'safe' ? security.setSafePin(pin) : security.changePin(pin, length));
+    if (await attempt(save)) onClose();
     else setStep('new');
   };
 
   const prompt =
-    step === 'current' ? tr('Enter your current PIN') : step === 'new' ? tr('Choose a {0}-digit PIN', [length]) : tr('Enter the same PIN again');
+    step === 'current'
+      ? tr('Enter your current PIN')
+      : step === 'new'
+        ? mode === 'safe'
+          ? tr('Choose a {0}-digit safe PIN', [length])
+          : tr('Choose a {0}-digit PIN', [length])
+        : tr('Enter the same PIN again');
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: t.bg }]}>
@@ -108,9 +126,11 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
                 ? tr('You’ll need it to open BudT{0}.', [
                     security.biometricKind ? tr(', unless you use {0}', [biometricLabel(security.biometricKind)]) : '',
                   ])
-                : ' ')}
+                : step === 'new' && mode === 'safe'
+                  ? tr('Entering this PIN opens BudT with amounts hidden and accounts, debts, groups and IOUs looking empty.')
+                  : ' ')}
           </AppText>
-          {step === 'new' && (
+          {step === 'new' && mode !== 'safe' && (
             <View style={{ width: 220 }}>
               <Segmented<'4' | '6'>
                 value={String(length) as '4' | '6'}

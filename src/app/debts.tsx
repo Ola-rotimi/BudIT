@@ -7,6 +7,7 @@ import { YearTable } from '@/components/YearTable';
 import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listDebts } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
+import { useSecurity } from '@/lib/security';
 import { shortDate, toISODate } from '@/lib/dates';
 import { minimumsOnly, planPayoff, type Strategy } from '@/lib/debt';
 import { parseAmount } from '@/lib/money';
@@ -29,7 +30,10 @@ export default function DebtsScreen() {
   const { isPro } = usePro();
   const { money } = useMoney();
   const { currency } = useSettings();
-  const debts = useQuery('debts:list', listDebts);
+  const { safeMode } = useSecurity();
+  const loaded = useQuery('debts:list', listDebts);
+  // Safe mode: looks empty (see lib/security).
+  const debts = loaded && safeMode ? [] : loaded;
   const [extra, setExtra] = useState('');
   const [strategy, setStrategy] = useState<Strategy>('avalanche');
 

@@ -19,7 +19,7 @@ type Entry = { key: string; date: string; tx?: TxRow; transfer?: TransferData };
 /** All activity for a period. With `?account=<id>` it shows one account, including transfers in and out. */
 export default function TransactionsScreen() {
   const t = useTheme();
-  const { money } = useMoney();
+  const { moneyIn } = useMoney();
   const params = useLocalSearchParams<{ account?: string }>();
   const accountId = params.account ? Number(params.account) : undefined;
   const [month, setMonth] = useState(currentMonthKey());
@@ -36,6 +36,8 @@ export default function TransactionsScreen() {
     return { txs, transfers, account };
   });
   const rows = data?.txs;
+  const viewCurrency = accountId ? data?.account?.currency : null;
+  const sum = (cents: number, sign = false) => moneyIn(cents, viewCurrency, { sign });
 
   const { sections, income, expense } = useMemo(() => {
     const entries: Entry[] = [
@@ -45,9 +47,11 @@ export default function TransactionsScreen() {
     const groups = new Map<string, Entry[]>();
     let income = 0;
     let expense = 0;
+    // Viewing one account: figures in that account's own currency (its original amounts).
+    const own = (tx: TxRow) => (accountId ? (tx.orig_amount ?? tx.amount) : tx.amount);
     for (const r of data?.txs ?? []) {
-      if (r.type === 'income') income += r.amount;
-      else expense += r.amount;
+      if (r.type === 'income') income += own(r);
+      else expense += own(r);
     }
     for (const e of entries) {
       const list = groups.get(e.date);
@@ -56,9 +60,9 @@ export default function TransactionsScreen() {
     }
     // A transfer only changes the net when looking at one account (money in or out of it).
     const effect = (e: Entry) => {
-      if (e.tx) return e.tx.type === 'income' ? e.tx.amount : -e.tx.amount;
+      if (e.tx) return e.tx.type === 'income' ? own(e.tx) : -own(e.tx);
       if (!accountId || !e.transfer) return 0;
-      return e.transfer.to_account === accountId ? e.transfer.amount : -e.transfer.amount;
+      return e.transfer.to_account === accountId ? (e.transfer.to_amount ?? e.transfer.amount) : -e.transfer.amount;
     };
     const sections = [...groups].map(([date, data]) => ({ date, data, net: data.reduce((s, e) => s + effect(e), 0) }));
     return { sections, income, expense };
@@ -101,7 +105,7 @@ export default function TransactionsScreen() {
           />
           {data?.account && (
             <View style={[styles.summary, { backgroundColor: t.card, borderColor: t.border }]}>
-              <SummaryItem label={tr('Balance now')} value={money(data.account.balance)} color={data.account.balance < 0 ? t.expense : t.text} />
+              <SummaryItem label={tr('Balance now')} value={moneyIn(data.account.balance, data.account.currency)} color={data.account.balance < 0 ? t.expense : t.text} />
             </View>
           )}
           <MonthSwitcher month={month} onChange={setMonth} />
@@ -127,16 +131,16 @@ export default function TransactionsScreen() {
             ]}
           />
           <View style={[styles.summary, { backgroundColor: t.card, borderColor: t.border }]}>
-            <SummaryItem label={tr('Income')} value={money(income)} color={t.income} />
-            <SummaryItem label={tr('Expenses')} value={money(expense)} color={t.expense} />
-            <SummaryItem label={tr('Net')} value={money(income - expense, { sign: true })} color={t.text} />
+            <SummaryItem label={tr('Income')} value={sum(income)} color={t.income} />
+            <SummaryItem label={tr('Expenses')} value={sum(expense)} color={t.expense} />
+            <SummaryItem label={tr('Net')} value={sum(income - expense, true)} color={t.text} />
           </View>
         </View>
       }
       renderSectionHeader={({ section }) => (
         <View style={styles.sectionHeader}>
           <AppText variant="label">{dayLabel(section.date)}</AppText>
-          <AppText variant="caption">{money(section.net, { sign: true })}</AppText>
+          <AppText variant="caption">{sum(section.net, true)}</AppText>
         </View>
       )}
       renderItem={({ item }) => (

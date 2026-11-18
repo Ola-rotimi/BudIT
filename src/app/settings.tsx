@@ -8,7 +8,10 @@ import { Alert, Pressable, Share, StyleSheet, Switch, Text, View } from 'react-n
 import { TimeField } from '@/components/DateField';
 import { LanguagePicker } from '@/components/LanguagePicker';
 import { PasswordPrompt } from '@/components/PasswordPrompt';
+import { useAmountsToggle } from '@/components/HideAmountsButton';
 import { PinSetup, type PinMode } from '@/components/PinSetup';
+import { useReauth } from '@/components/Reauth';
+import { useDeviceLooksRooted } from '@/components/SecurityChecks';
 import { AppText, Card, Divider, ListRow, Screen, Segmented } from '@/components/ui';
 import { exportTransactionsCsv, getSetting, resetAllData } from '@/db/queries';
 import type { IconName } from '@/db/types';
@@ -54,9 +57,12 @@ const LOCK_AFTER: { value: string; label: string }[] = [
 export default function SettingsScreen() {
   const t = useTheme();
   const db = useSQLiteContext();
-  const { currency, currencyChosen, setCurrency, country, theme, setTheme, reload, setOnboarded, hideAmounts, setHideAmounts, monthStartDay, setMonthStartDay } =
+  const { currency, currencyChosen, setCurrency, country, theme, setTheme, reload, setOnboarded, hideAmounts, monthStartDay, setMonthStartDay } =
     useSettings();
   const security = useSecurity();
+  const confirm = useReauth();
+  const rooted = useDeviceLooksRooted();
+  const amounts = useAmountsToggle();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [pinMode, setPinMode] = useState<PinMode | null>(null);
   // Days since the last backup (null if never); undefined while loading.
@@ -67,7 +73,7 @@ export default function SettingsScreen() {
   const backupDue = backupAge === null || (backupAge !== undefined && backupAge >= BACKUP_REMINDER_DAYS);
   const reminders = useQuery('settings:reminders', readReminderSettings);
 
-  const setReminder = async (key: 'bills' | 'daily', value: string) => {
+  const setReminder = async (key: 'bills' | 'daily' | 'backup', value: string) => {
     if (value && value !== '0' && !(await ensurePermission())) {
       return Alert.alert(tr('Notifications are off'), tr('Allow notifications for BudT in your phone’s Settings to get reminders.'), [
         { text: tr('Not now'), style: 'cancel' },
@@ -102,12 +108,24 @@ export default function SettingsScreen() {
     }
   };
 
-  const backup = () =>
-    Alert.alert(tr('Protect this backup with a password?'), tr('A password encrypts the file, so nobody who finds it can read your finances.'), [
-      { text: tr('Cancel'), style: 'cancel' },
-      { text: tr('No password'), onPress: () => share() },
-      { text: tr('Add password'), onPress: () => setPrompt({ mode: 'create' }) },
-    ]);
+  // Backups are password-protected unless the user deliberately opts out.
+  const backup = async () => {
+    if (await confirm(tr('Back up your data'))) setPrompt({ mode: 'create' });
+  };
+
+  const backupWithoutPassword = () => {
+    setPrompt(null);
+    afterModal(() =>
+      Alert.alert(
+        tr('Save without a password?'),
+        tr('Anyone who gets hold of the file, for example in your email or cloud drive, could read all your finances.'),
+        [
+          { text: tr('Use a password'), onPress: () => afterModal(() => setPrompt({ mode: 'create' })) },
+          { text: tr('Save unprotected'), style: 'destructive', onPress: () => share() },
+        ],
+      ),
+    );
+  };
 
   const onPassword = async (password: string): Promise<string | null> => {
     if (!prompt) return null;
@@ -133,6 +151,7 @@ export default function SettingsScreen() {
   };
 
   const restore = async () => {
+    if (!(await confirm(tr('Restore a backup')))) return;
     try {
       const picked = await pickBackup();
       if (!picked) return;
@@ -170,13 +189,34 @@ export default function SettingsScreen() {
   const exportCsv = async () => {
     const { csv, count } = await exportTransactionsCsv(db);
     if (!count) return Alert.alert(tr('Nothing to export'), tr('Add some transactions first.'));
+    if (!(await confirm(tr('Export your transactions')))) return;
     await Share.share({ title: tr('BudT transactions'), message: csv });
   };
 
-  const reset = () =>
+  const reset = async () => {
+    if (!(await confirm(tr('Erase all data')))) return;
     Alert.alert(tr('Erase all data?'), tr('Deletes every transaction, budget, goal and bill on this device. Categories and settings are kept.'), [
       { text: tr('Cancel'), style: 'cancel' },
       { text: tr('Erase everything'), style: 'destructive', onPress: () => resetAllData(db) },
+    ]);
+  };
+
+  const setPrivacy = async (on: boolean) => {
+    if (!on && !(await confirm(tr('Turn off the privacy screen')))) return;
+    await security.update({ privacy: on });
+  };
+
+  const safePinOptions = () =>
+    Alert.alert(tr('Safe PIN'), tr('Entering your safe PIN instead of your real one opens BudT with amounts hidden and accounts, debts, groups and IOUs looking empty.'), [
+      { text: tr('Cancel'), style: 'cancel' },
+      { text: tr('Change safe PIN'), onPress: () => setPinMode('safe') },
+      {
+        text: tr('Remove safe PIN'),
+        style: 'destructive',
+        onPress: async () => {
+          if (await confirm(tr('Remove your safe PIN'))) await security.removeSafePin();
+        },
+      },
     ]);
 
   return (
@@ -256,6 +296,19 @@ export default function SettingsScreen() {
             </View>
             <Divider />
             <ListRow icon="keypad-outline" iconColor={t.primary} title={tr('Change PIN')} onPress={() => setPinMode('change')} />
+            {/* In safe mode the safe PIN is never mentioned, so nothing gives it away. */}
+            {!security.safeMode && (
+              <>
+                <Divider />
+                <ListRow
+                  icon="shield-half-outline"
+                  iconColor={t.primary}
+                  title={tr('Safe PIN')}
+                  subtitle={security.config.safePin ? tr('On. Opens BudT with your finances hidden') : tr('A second PIN for when someone forces you to open BudT')}
+                  onPress={security.config.safePin ? safePinOptions : () => setPinMode('safe')}
+                />
+              </>
+            )}
           </>
         )}
         <Divider />
@@ -264,16 +317,27 @@ export default function SettingsScreen() {
           title={tr('Privacy screen')}
           subtitle={tr('Hide BudT in recent apps and block screenshots')}
           value={security.config.privacy}
-          onChange={(on) => security.update({ privacy: on })}
+          onChange={setPrivacy}
         />
         <Divider />
         <ToggleRow
           icon="eye-outline"
           title={tr('Hide amounts')}
-          subtitle={tr('Show •••••• instead of balances. Tap the eye on Home to switch.')}
-          value={hideAmounts}
-          onChange={setHideAmounts}
+          subtitle={tr('Show •••••• instead of balances. Showing them again asks for your PIN.')}
+          value={amounts.hidden}
+          onChange={(on) => (on === amounts.hidden ? undefined : amounts.toggle())}
         />
+        {rooted && (
+          <>
+            <Divider />
+            <View style={styles.devRow}>
+              <Ionicons name="warning-outline" size={20} color={t.warning} />
+              <AppText variant="caption" style={{ flex: 1 }}>
+                {tr('This phone may be rooted or jailbroken, which weakens BudT’s encryption and app lock.')}
+              </AppText>
+            </View>
+          </>
+        )}
       </Card>
 
       {reminders && (
@@ -295,6 +359,14 @@ export default function SettingsScreen() {
             onChange={(on) => setReminder('daily', on ? '20:00' : '')}
           />
           {!!reminders.daily && <TimeField label={tr('Remind me at')} value={reminders.daily} onChange={(v) => setReminder('daily', v)} />}
+          <Divider />
+          <ToggleRow
+            icon="cloud-upload-outline"
+            title={tr('Backup reminders')}
+            subtitle={tr('A notification when your last backup is {0} days old', [BACKUP_REMINDER_DAYS])}
+            value={reminders.backup}
+            onChange={(on) => setReminder('backup', on ? '1' : '0')}
+          />
           {(security.config.enabled || hideAmounts) && (
             <AppText variant="caption">{tr('Amounts are left out of notifications while app lock or hide amounts is on.')}</AppText>
           )}
@@ -409,7 +481,7 @@ export default function SettingsScreen() {
           iconColor={t.primary}
           title={tr('Back up data')}
           subtitle={
-            backupAge === undefined ? tr('Save a backup file to Files, Drive or email') : backupAge === null ? tr('Not backed up yet. Save a file to Files, Drive or email') : tr('Last backup {0}. Password protection available', [backupAge === 0 ? tr('today') : tr('{0} day{1} ago', [backupAge, backupAge === 1 ? '' : 's'])])
+            backupAge === undefined ? tr('Save an encrypted backup to Files, Drive or email') : backupAge === null ? tr('Not backed up yet. Save an encrypted file to Files, Drive or email') : tr('Last backup {0}. Encrypted with your password', [backupAge === 0 ? tr('today') : tr('{0} day{1} ago', [backupAge, backupAge === 1 ? '' : 's'])])
           }
           right={backupDue ? <Ionicons name="alert-circle" size={20} color={t.warning} accessibilityLabel={tr('Backup due')} /> : undefined}
           onPress={backup}
@@ -461,6 +533,7 @@ export default function SettingsScreen() {
         }
         onSubmit={onPassword}
         onCancel={() => setPrompt(null)}
+        secondary={prompt?.mode === 'create' ? { label: tr('Save without a password'), onPress: backupWithoutPassword } : undefined}
       />
     </Screen>
   );

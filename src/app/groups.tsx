@@ -5,6 +5,7 @@ import { AppText, Card, EmptyState, HeaderButton, IconBadge, Loading, ProgressBa
 import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listGroups } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
+import { useSecurity } from '@/lib/security';
 import { shortDate, todayISO } from '@/lib/dates';
 import { useFreeLimit } from '@/lib/limits';
 import { currentCycle, cycleDate, payoutAmount } from '@/lib/savingsGroups';
@@ -16,7 +17,10 @@ import { tr } from '@/i18n';
 export default function GroupsScreen() {
   const t = useTheme();
   const { money } = useMoney();
-  const groups = useQuery('groups:list', listGroups);
+  const { safeMode } = useSecurity();
+  const loaded = useQuery('groups:list', listGroups);
+  // Safe mode: looks empty (see lib/security).
+  const groups = loaded && safeMode ? [] : loaded;
   const limit = useFreeLimit('groups');
   const addGroup = () => limit.add('/group-form');
 

@@ -5,11 +5,13 @@ import { Alert, StyleSheet, TextInput, View } from 'react-native';
 import { DateField } from '@/components/DateField';
 import { AccountPicker, CategoryPicker } from '@/components/pickers';
 import { AppText, Button, Field, HeaderDeleteButton, Screen, Segmented } from '@/components/ui';
+import { MissingRateError } from '@/db/currency';
 import { budgetWarning, defaultAccountId, deleteTransaction, getTransaction, listAccounts, saveRecurring, saveTransaction } from '@/db/queries';
 import type { TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
 import { advanceDate, shortDate, todayISO } from '@/lib/dates';
-import { centsToInput, formatPercent, groupDigits, parseAmount } from '@/lib/money';
+import { useConversion } from '@/lib/fx';
+import { centsToInput, formatMoney, formatPercent, groupDigits, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -32,7 +34,12 @@ export default function TransactionScreen() {
   const [accountId, setAccountId] = useState<number | null>(params.account ? Number(params.account) : null);
   const [repeat, setRepeat] = useState<Repeat>('none');
   const [recurringId, setRecurringId] = useState<number | null>(null);
-  const accountCount = useQuery('accounts:count', async (d) => (await listAccounts(d)).length);
+  const accounts = useQuery('accounts:list', (d) => listAccounts(d));
+  const accountCount = accounts?.length;
+  // An account in another currency (e.g. a USD domiciliary account) takes amounts in that currency.
+  const accountCurrency = accounts?.find((a) => a.id === accountId)?.currency ?? null;
+  const entryCurrency = accountCurrency && accountCurrency !== currency ? accountCurrency : currency;
+  const conversion = useConversion(entryCurrency, currency);
 
   useEffect(() => {
     if (!id) {
@@ -42,7 +49,7 @@ export default function TransactionScreen() {
     getTransaction(db, id).then((tx) => {
       if (!tx) return;
       setType(tx.type);
-      setAmount(centsToInput(tx.amount));
+      setAmount(centsToInput(tx.orig_amount ?? tx.amount));
       setCategoryId(tx.category_id);
       setDate(tx.date);
       setNote(tx.note);
@@ -60,9 +67,17 @@ export default function TransactionScreen() {
     const cents = parseAmount(amount);
     if (!cents) return Alert.alert(tr('Enter an amount'), tr('The amount must be greater than zero.'));
     if (!categoryId) return Alert.alert(tr('Pick a category'));
-    await saveTransaction(db, { id, type, amount: cents, category_id: categoryId, account_id: accountId, date, note: note.trim() });
+    let saved: Awaited<ReturnType<typeof saveTransaction>>;
+    try {
+      saved = await saveTransaction(db, { id, type, amount: cents, category_id: categoryId, account_id: accountId, date, note: note.trim() });
+    } catch (e) {
+      if (e instanceof MissingRateError) {
+        return Alert.alert(tr('No exchange rate yet'), tr('BudT needs the official {0} rate once to record this. Connect to the internet and try again.', [entryCurrency]));
+      }
+      throw e;
+    }
     // New spending only: warn when it pushes a budget past 80% or over the limit.
-    const warning = !id && type === 'expense' ? await budgetWarning(db, categoryId, date, cents) : null;
+    const warning = !id && type === 'expense' ? await budgetWarning(db, categoryId, date, saved.amount) : null;
     if (repeat !== 'none') {
       // This one is recorded now; the rule adds the following ones on their dates.
       await saveRecurring(db, {
@@ -112,7 +127,7 @@ export default function TransactionScreen() {
       />
 
       <View style={[styles.amountBox, { backgroundColor: t.card, borderColor: t.border }]}>
-        <AppText variant="label">{tr('Amount ({0})', [currency])}</AppText>
+        <AppText variant="label">{tr('Amount ({0})', [entryCurrency])}</AppText>
         <TextInput
           value={groupDigits(amount)}
           onChangeText={(text) => setAmount(groupDigits(text, groupDigits(amount)))}
@@ -123,6 +138,13 @@ export default function TransactionScreen() {
           style={[styles.amountInput, { color: accent }]}
           accessibilityLabel={tr('Amount')}
         />
+        {entryCurrency !== currency && (
+          <AppText variant="caption">
+            {conversion.rate !== null && parseAmount(amount)
+              ? tr('≈ {0} at the official rate', [formatMoney(Math.round((parseAmount(amount) ?? 0) * conversion.rate), currency)])
+              : tr('Counted in your budgets in {0} at the official rate', [currency])}
+          </AppText>
+        )}
       </View>
 
       <View style={{ gap: 8 }}>

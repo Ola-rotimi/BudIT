@@ -20,6 +20,9 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { icon: 'flag', color: '#10B981', title: N_('Savings goals'), subtitle: N_('Save towards the things that matter'), href: '/goals' },
       { icon: 'calendar', color: '#F97316', title: N_('Bills & subscriptions'), subtitle: N_('Recurring payments and due dates'), href: '/bills' },
       { icon: 'people', color: '#D97706', title: N_('Savings groups'), subtitle: N_('Ajo, esusu, susu, chama and stokvel'), href: '/groups' },
+      { icon: 'swap-vertical', color: '#0EA5E9', title: N_('IOUs & split bills'), subtitle: N_('Money you lent, borrowed or split with friends'), href: '/ious' },
+      { icon: 'trophy', color: '#F59E0B', title: N_('Challenges'), subtitle: N_('No-spend days, spending caps and streaks'), href: '/challenges' },
+      { icon: 'trending-up', color: '#10B981', title: N_('Net worth'), subtitle: N_('What you own minus what you owe'), href: '/net-worth' },
       { icon: 'trending-down', color: '#EF4444', title: N_('Debt payoff'), subtitle: N_('Avalanche or snowball, and your debt-free date'), href: '/debts', pro: true },
     ],
   },
@@ -29,7 +32,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { icon: 'home', color: '#EF4444', title: N_('Loan & mortgage'), subtitle: N_('Repayments, interest and overpayments'), href: '/tools/loan', pro: true },
       { icon: 'trending-up', color: '#F59E0B', title: N_('Savings growth'), subtitle: N_('See compound interest at work'), href: '/tools/savings', pro: true },
       { icon: 'document-text', color: '#0F766E', title: N_('Annual summary'), subtitle: N_('Your year and estimated tax, as a PDF'), href: '/tax-summary', pro: true },
-      { icon: 'swap-horizontal', color: '#10B981', title: N_('Currency converter'), subtitle: N_('Official central bank exchange rates'), href: '/tools/convert', pro: true },
+      { icon: 'swap-horizontal', color: '#10B981', title: N_('Currency converter'), subtitle: N_('Official central bank exchange rates'), href: '/tools/convert' },
     ],
   },
   {

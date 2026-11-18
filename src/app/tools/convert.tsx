@@ -3,12 +3,10 @@ import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ProLock } from '@/components/ProLock';
 import { AppText, Button, Card, Divider, Field, Screen } from '@/components/ui';
 import { shortDate } from '@/lib/dates';
 import { crossRate, describeSource, formatRate, FX_CURRENCIES, useFxRates } from '@/lib/fx';
 import { CURRENCIES, formatMajor, parseNumber } from '@/lib/money';
-import { usePro } from '@/lib/pro';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -23,9 +21,7 @@ export default function CurrencyConverter() {
   const [to, setTo] = useState(currency === 'USD' ? 'EUR' : 'USD');
   const [picking, setPicking] = useState<Side | null>(null);
 
-  const { isPro } = usePro();
-  // Only fetch rates once the converter is unlocked.
-  const fx = useFxRates(isPro ? [from, to] : []);
+  const fx = useFxRates([from, to]);
   const rate = crossRate(fx.quotes, from, to);
   const value = parseNumber(amount);
 
@@ -81,8 +77,7 @@ export default function CurrencyConverter() {
         )}
       </Card>
 
-      {isPro ? (
-        <>
+      <>
           <Card>
             {rate === null ? (
               fx.loading ? (
@@ -148,14 +143,7 @@ export default function CurrencyConverter() {
               );
             })}
           </Card>
-
-        </>
-      ) : (
-        <ProLock
-          title={tr('Convert at official rates')}
-          message={tr('BudT Pro converts between 37 currencies using each central bank’s official rate, with sources and dates.')}
-        />
-      )}
+      </>
 
       <AppText variant="caption" style={{ textAlign: 'center', paddingHorizontal: 16 }}>{tr('Official central bank reference rates only. No parallel-market or bureau rates are used. Conversions between two non-USD currencies are calculated through each bank’s US dollar rate. Banks and bureaux may charge a different rate.')}</AppText>
     </Screen>

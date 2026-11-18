@@ -51,14 +51,25 @@ export function CategoryPicker({ type, value, onChange }: { type: TxType; value:
 }
 
 /** Chips for choosing a wallet. Pass `exclude` to hide one (e.g. the "from" account in a transfer). */
-export function AccountPicker({ value, onChange, exclude }: { value: number | null; onChange: (id: number) => void; exclude?: number | null }) {
+export function AccountPicker({
+  value,
+  onChange,
+  exclude,
+  homeOnly,
+}: {
+  value: number | null;
+  onChange: (id: number) => void;
+  exclude?: number | null;
+  /** Only accounts in the home currency (e.g. for savings groups, which are tracked in it). */
+  homeOnly?: boolean;
+}) {
   const t = useTheme();
   const accounts = useQuery('accounts:picker', (db) => listAccounts(db));
 
   return (
     <View style={styles.wrap}>
       {accounts
-        ?.filter((a) => a.id !== exclude)
+        ?.filter((a) => a.id !== exclude && (!homeOnly || !a.currency))
         .map((a) => {
           const active = a.id === value;
           return (
@@ -69,7 +80,7 @@ export function AccountPicker({ value, onChange, exclude }: { value: number | nu
               accessibilityState={{ selected: active }}
               style={[styles.chip, { borderColor: active ? a.color : t.border, backgroundColor: active ? `${a.color}22` : t.card }]}>
               <Ionicons name={a.icon} size={16} color={a.color} />
-              <Text style={[styles.chipText, { color: t.text }]}>{a.name}</Text>
+              <Text style={[styles.chipText, { color: t.text }]}>{a.currency ? `${a.name} · ${a.currency}` : a.name}</Text>
             </Pressable>
           );
         })}

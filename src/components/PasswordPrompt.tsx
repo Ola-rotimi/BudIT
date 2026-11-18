@@ -18,6 +18,7 @@ export function PasswordPrompt({
   message,
   onSubmit,
   onCancel,
+  secondary,
 }: {
   visible: boolean;
   mode: 'create' | 'enter';
@@ -25,16 +26,18 @@ export function PasswordPrompt({
   message: string;
   onSubmit: (password: string) => Promise<string | null>;
   onCancel: () => void;
+  /** A less prominent alternative under the buttons, e.g. "Save without a password". */
+  secondary?: { label: string; onPress: () => void };
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       {/* Remounted on each open so fields start empty. */}
-      {visible && <PromptBody mode={mode} title={title} message={message} onSubmit={onSubmit} onCancel={onCancel} />}
+      {visible && <PromptBody mode={mode} title={title} message={message} onSubmit={onSubmit} onCancel={onCancel} secondary={secondary} />}
     </Modal>
   );
 }
 
-function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameters<typeof PasswordPrompt>[0], 'visible'>) {
+function PromptBody({ mode, title, message, onSubmit, onCancel, secondary }: Omit<Parameters<typeof PasswordPrompt>[0], 'visible'>) {
   const t = useTheme();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -103,6 +106,13 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
             <Button title={tr('Cancel')} variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
             <Button title={mode === 'create' ? tr('Encrypt') : tr('Unlock')} icon="lock-closed" onPress={submit} style={{ flex: 1 }} />
           </View>
+        )}
+        {secondary && !busy && (
+          <Pressable onPress={secondary.onPress} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center' }}>
+            <AppText variant="caption" weight="600" color={t.muted}>
+              {secondary.label}
+            </AppText>
+          </Pressable>
         )}
       </View>
     </KeyboardAvoidingView>

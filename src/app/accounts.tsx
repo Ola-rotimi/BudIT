@@ -1,10 +1,11 @@
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
-import { AppText, Button, Card, Divider, HeaderButton, IconBadge, ListRow, Loading, Screen } from '@/components/ui';
+import { AppText, Button, Card, Divider, EmptyState, HeaderButton, IconBadge, ListRow, Loading, Screen } from '@/components/ui';
 import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listAccounts } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
+import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -12,12 +13,17 @@ import { tr } from '@/i18n';
 /** All wallets with their balances. Tapping one shows its activity. */
 export default function AccountsScreen() {
   const t = useTheme();
-  const { money } = useMoney();
-  const accounts = useQuery('accounts:list', (db) => listAccounts(db));
+  const { money, moneyIn, currency } = useMoney();
+  const { safeMode } = useSecurity();
+  const data = useQuery('accounts:list', (db) => listAccounts(db));
 
-  if (!accounts) return <Loading />;
-  const total = accounts.reduce((s, a) => s + a.balance, 0);
-  const owed = accounts.filter((a) => a.balance < 0).reduce((s, a) => s + a.balance, 0);
+  if (!data) return <Loading />;
+  // Safe mode: show nothing worth seeing (see lib/security).
+  const accounts = safeMode ? [] : data;
+  const counted = accounts.filter((a) => a.home_balance !== null);
+  const total = counted.reduce((s, a) => s + a.home_balance!, 0);
+  const owed = counted.filter((a) => a.home_balance! < 0).reduce((s, a) => s + a.home_balance!, 0);
+  const unconverted = accounts.filter((a) => a.home_balance === null);
 
   return (
     <Screen>
@@ -38,27 +44,53 @@ export default function AccountsScreen() {
           {money(total)}
         </AppText>
         {owed < 0 && <AppText variant="caption">{tr('Includes {0} owed on cards or loans.', [money(-owed)])}</AppText>}
+        {unconverted.length > 0 && (
+          <AppText variant="caption" color={t.warning}>
+            {tr('{0} isn’t included yet: BudT needs the official exchange rate once. Connect to the internet to update.', [unconverted.map((a) => a.name).join(', ')])}
+          </AppText>
+        )}
         <Button title={tr('Transfer between accounts')} icon="swap-horizontal" variant="secondary" onPress={() => router.push('/transfer')} disabled={accounts.length < 2} />
       </Card>
 
-      <Card style={{ gap: 6 }}>
-        {accounts.map((a, i) => (
-          <View key={a.id}>
-            {i > 0 && <Divider />}
-            <ListRow
-              icon={a.icon}
-              iconColor={a.color}
-              title={a.name}
-              subtitle={ACCOUNT_KINDS[a.kind] ? tr(ACCOUNT_KINDS[a.kind].label) : tr('Account')}
-              right={
-                <AppText weight="700" color={a.balance < 0 ? t.expense : undefined}>
-                  {money(a.balance)}
-                </AppText>
-              }
-              onPress={() => router.push({ pathname: '/transactions', params: { account: String(a.id) } })}
-            />
-          </View>
-        ))}
+      {accounts.length > 0 ? (
+        <Card style={{ gap: 6 }}>
+          {accounts.map((a, i) => {
+            const foreign = !!a.currency && a.currency !== currency;
+            const kind = ACCOUNT_KINDS[a.kind] ? tr(ACCOUNT_KINDS[a.kind].label) : tr('Account');
+            return (
+              <View key={a.id}>
+                {i > 0 && <Divider />}
+                <ListRow
+                  icon={a.icon}
+                  iconColor={a.color}
+                  title={a.name}
+                  subtitle={foreign ? `${kind} · ${a.currency}` : kind}
+                  right={
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <AppText weight="700" color={a.balance < 0 ? t.expense : undefined}>
+                        {moneyIn(a.balance, a.currency)}
+                      </AppText>
+                      {foreign && a.home_balance !== null && <AppText variant="caption">≈ {money(a.home_balance)}</AppText>}
+                    </View>
+                  }
+                  onPress={() => router.push({ pathname: '/transactions', params: { account: String(a.id) } })}
+                />
+              </View>
+            );
+          })}
+        </Card>
+      ) : (
+        <Card>
+          <EmptyState icon="wallet-outline" title={tr('No accounts yet')} message={tr('Add your cash, bank and mobile-money accounts to see your balances.')} />
+        </Card>
+      )}
+
+      <Card style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => router.push('/net-worth')}>
+        <IconBadge icon="trending-up" color={t.primary} />
+        <View style={{ flex: 1 }}>
+          <AppText weight="700">{tr('Net worth')}</AppText>
+          <AppText variant="caption">{tr('What you own minus what you owe, month by month.')}</AppText>
+        </View>
       </Card>
 
       <Card style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => router.push('/import')}>
@@ -73,7 +105,7 @@ export default function AccountsScreen() {
         <IconBadge icon="add" color={t.primary} />
         <View style={{ flex: 1 }}>
           <AppText weight="700">{tr('Add an account')}</AppText>
-          <AppText variant="caption">{tr('Cash, bank, mobile money (M-Pesa, MoMo, OPay…), cards or savings.')}</AppText>
+          <AppText variant="caption">{tr('Cash, bank, mobile money (M-Pesa, MoMo, OPay…), cards or savings, in any currency.')}</AppText>
         </View>
       </Card>
     </Screen>

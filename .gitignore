@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Expo Update code-signing private keys (see docs/RELEASE.md). Never commit these.
+keys/

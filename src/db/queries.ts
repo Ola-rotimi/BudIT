@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { advanceDate, periodKeyOf, periodRange, shiftMonth, todayISO } from '@/lib/dates';
+import { amountsFor, amountsFromHome, cachedRates, convertWith, homeCurrency, MissingRateError } from './currency';
 import { notifyChange } from './events';
 import { FEES_CATEGORY } from './schema';
 import type { Account, Bill, Budget, Category, Debt, Goal, IconName, Recurring, SavingsGroup, Transaction, Transfer, TxType } from './types';
@@ -89,26 +90,31 @@ export function getTransaction(db: SQLiteDatabase, id: number) {
   return db.getFirstAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', id);
 }
 
+/** `amount` is in the account's own currency (the home currency unless the account holds another). */
 export type TxInput = Pick<Transaction, 'type' | 'amount' | 'category_id' | 'date' | 'note'> & { id?: number; account_id?: number | null };
 
-/** Saves a transaction and returns its id. */
+/**
+ * Saves a transaction. Returns its id and its amount in the home currency. Throws
+ * `MissingRateError` for a foreign-currency account whose official rate hasn't been downloaded.
+ */
 export async function saveTransaction(db: SQLiteDatabase, tx: TxInput) {
   const accountId = tx.account_id ?? (await defaultAccountId(db));
+  const a = await amountsFor(db, accountId, tx.amount);
   let id = tx.id;
   if (id) {
     await db.runAsync(
-      'UPDATE transactions SET type = ?, amount = ?, category_id = ?, account_id = ?, date = ?, note = ? WHERE id = ?',
-      tx.type, tx.amount, tx.category_id, accountId, tx.date, tx.note, id,
+      'UPDATE transactions SET type = ?, amount = ?, orig_amount = ?, orig_currency = ?, category_id = ?, account_id = ?, date = ?, note = ? WHERE id = ?',
+      tx.type, a.amount, a.orig_amount, a.orig_currency, tx.category_id, accountId, tx.date, tx.note, id,
     );
   } else {
     const res = await db.runAsync(
-      'INSERT INTO transactions (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-      tx.type, tx.amount, tx.category_id, accountId, tx.date, tx.note,
+      'INSERT INTO transactions (type, amount, orig_amount, orig_currency, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      tx.type, a.amount, a.orig_amount, a.orig_currency, tx.category_id, accountId, tx.date, tx.note,
     );
     id = res.lastInsertRowId;
   }
   notifyChange();
-  return id;
+  return { id, amount: a.amount };
 }
 
 export async function deleteTransaction(db: SQLiteDatabase, id: number) {
@@ -158,22 +164,47 @@ export function categoryTotals(db: SQLiteDatabase, month: string, type: TxType) 
 
 // ---------- Accounts (wallets) ----------
 
-export type AccountRow = Account & { balance: number };
+/**
+ * `balance` is in the account's own currency. `home_balance` is the same in the home currency at
+ * the latest official rate (null if that rate hasn't been downloaded yet).
+ */
+export type AccountRow = Account & { balance: number; home_balance: number | null };
 
+/** Balance in the account's own currency: original amounts for its transactions, received amounts for transfers in. */
 const BALANCE_SQL = `
   a.opening_balance
-  + COALESCE((SELECT SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE -t.amount END) FROM transactions t WHERE t.account_id = a.id), 0)
+  + COALESCE((SELECT SUM(CASE WHEN t.type = 'income' THEN 1 ELSE -1 END * COALESCE(t.orig_amount, t.amount)) FROM transactions t WHERE t.account_id = a.id), 0)
   - COALESCE((SELECT SUM(x.amount) FROM transfers x WHERE x.from_account = a.id), 0)
-  + COALESCE((SELECT SUM(x.amount) FROM transfers x WHERE x.to_account = a.id), 0)`;
+  + COALESCE((SELECT SUM(COALESCE(x.to_amount, x.amount)) FROM transfers x WHERE x.to_account = a.id), 0)`;
 
-export function listAccounts(db: SQLiteDatabase, includeArchived = false) {
-  return db.getAllAsync<AccountRow>(
-    `SELECT a.*, ${BALANCE_SQL} AS balance FROM accounts a ${includeArchived ? '' : 'WHERE a.archived = 0'} ORDER BY a.archived, a.id`,
-  );
+async function withHomeBalances(db: SQLiteDatabase, rows: (Account & { balance: number })[]): Promise<AccountRow[]> {
+  const home = await homeCurrency(db);
+  const rates = rows.some((r) => r.currency && r.currency !== home) ? await cachedRates(db) : new Map<string, number>();
+  return rows.map((r) => ({
+    ...r,
+    home_balance: !r.currency || r.currency === home ? r.balance : convertWith(rates, r.balance, r.currency, home),
+  }));
 }
 
-export function getAccount(db: SQLiteDatabase, id: number) {
-  return db.getFirstAsync<AccountRow>(`SELECT a.*, ${BALANCE_SQL} AS balance FROM accounts a WHERE a.id = ?`, id);
+export async function listAccounts(db: SQLiteDatabase, includeArchived = false) {
+  const rows = await db.getAllAsync<Account & { balance: number }>(
+    `SELECT a.*, ${BALANCE_SQL} AS balance FROM accounts a ${includeArchived ? '' : 'WHERE a.archived = 0'} ORDER BY a.archived, a.id`,
+  );
+  return withHomeBalances(db, rows);
+}
+
+export async function getAccount(db: SQLiteDatabase, id: number) {
+  const row = await db.getFirstAsync<Account & { balance: number }>(`SELECT a.*, ${BALANCE_SQL} AS balance FROM accounts a WHERE a.id = ?`, id);
+  return row ? (await withHomeBalances(db, [row]))[0] : null;
+}
+
+/** Whether an account has any activity yet (its currency can only be changed before then). */
+export async function accountHasActivity(db: SQLiteDatabase, id: number) {
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT (SELECT count(*) FROM transactions WHERE account_id = ?) + (SELECT count(*) FROM transfers WHERE from_account = ? OR to_account = ?) AS n',
+    id, id, id,
+  );
+  return (row?.n ?? 0) > 0;
 }
 
 /** The account new transactions go to when none is chosen: the oldest active one. */
@@ -182,16 +213,21 @@ export async function defaultAccountId(db: SQLiteDatabase) {
   return row?.id ?? null;
 }
 
-export async function saveAccount(db: SQLiteDatabase, a: Pick<Account, 'name' | 'kind' | 'icon' | 'color' | 'opening_balance'> & { id?: number }) {
+export async function saveAccount(
+  db: SQLiteDatabase,
+  a: Pick<Account, 'name' | 'kind' | 'icon' | 'color' | 'opening_balance'> & { id?: number; currency?: string | null },
+) {
+  // The home currency is stored as NULL, so the account follows it if the home currency changes.
+  const currency = a.currency && a.currency !== (await homeCurrency(db)) ? a.currency : null;
   if (a.id) {
     await db.runAsync(
-      'UPDATE accounts SET name = ?, kind = ?, icon = ?, color = ?, opening_balance = ? WHERE id = ?',
-      a.name, a.kind, a.icon, a.color, a.opening_balance, a.id,
+      'UPDATE accounts SET name = ?, kind = ?, icon = ?, color = ?, opening_balance = ?, currency = ? WHERE id = ?',
+      a.name, a.kind, a.icon, a.color, a.opening_balance, currency, a.id,
     );
   } else {
     await db.runAsync(
-      'INSERT INTO accounts (name, kind, icon, color, opening_balance) VALUES (?, ?, ?, ?, ?)',
-      a.name, a.kind, a.icon, a.color, a.opening_balance,
+      'INSERT INTO accounts (name, kind, icon, color, opening_balance, currency) VALUES (?, ?, ?, ?, ?, ?)',
+      a.name, a.kind, a.icon, a.color, a.opening_balance, currency,
     );
   }
   notifyChange();
@@ -224,7 +260,8 @@ export async function findDuplicates(db: SQLiteDatabase, accountId: number, rows
   if (!rows.length) return [];
   const dates = rows.map((r) => r.date).sort();
   const existing = await db.getAllAsync<{ date: string; amount: number; type: string }>(
-    'SELECT date, amount, type FROM transactions WHERE account_id = ? AND date >= ? AND date <= ?',
+    // Compared in the account's own currency, as statement amounts are.
+    'SELECT date, COALESCE(orig_amount, amount) AS amount, type FROM transactions WHERE account_id = ? AND date >= ? AND date <= ?',
     accountId, dates[0], dates[dates.length - 1],
   );
   const seen = new Map<string, number>();
@@ -238,13 +275,16 @@ export async function findDuplicates(db: SQLiteDatabase, accountId: number, rows
   });
 }
 
-/** Adds imported statement lines to an account in one transaction. */
+/** Adds imported statement lines (in the account's own currency) to an account in one transaction. */
 export async function importTransactions(db: SQLiteDatabase, accountId: number, rows: ImportRow[]) {
+  // Converted up front, so a missing exchange rate stops the import before anything is written.
+  const converted = await Promise.all(rows.map((r) => amountsFor(db, accountId, r.amount)));
   await db.withTransactionAsync(async () => {
-    for (const r of rows) {
+    for (const [i, r] of rows.entries()) {
+      const a = converted[i];
       await db.runAsync(
-        'INSERT INTO transactions (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-        r.type, r.amount, r.category_id, accountId, r.date, r.note,
+        'INSERT INTO transactions (type, amount, orig_amount, orig_currency, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        r.type, a.amount, a.orig_amount, a.orig_currency, r.category_id, accountId, r.date, r.note,
       );
     }
   });
@@ -253,10 +293,12 @@ export async function importTransactions(db: SQLiteDatabase, accountId: number, 
 
 // ---------- Transfers ----------
 
-export type TransferRow = Transfer & { from_name: string; to_name: string; fee: number };
+/** `fee` is in the sending account's currency; the currencies are null for home-currency accounts. */
+export type TransferRow = Transfer & { from_name: string; to_name: string; fee: number; from_currency: string | null; to_currency: string | null };
 
 const TRANSFER_SELECT = `
-  SELECT x.*, f.name AS from_name, d.name AS to_name, COALESCE(t.amount, 0) AS fee
+  SELECT x.*, f.name AS from_name, d.name AS to_name, COALESCE(t.orig_amount, t.amount, 0) AS fee,
+         f.currency AS from_currency, d.currency AS to_currency
   FROM transfers x JOIN accounts f ON f.id = x.from_account JOIN accounts d ON d.id = x.to_account
   LEFT JOIN transactions t ON t.id = x.fee_tx_id`;
 
@@ -286,24 +328,28 @@ async function feesCategoryId(db: SQLiteDatabase) {
 /**
  * Moves money between accounts. A fee (e.g. a mobile-money charge) is recorded as an expense from
  * the sending account so it shows up in spending. Editing replaces the old transfer and fee.
+ * `amount` and `fee` are in the sending account's currency; `to_amount` is what arrived, needed
+ * only when the receiving account holds a different currency.
  */
 export async function saveTransfer(
   db: SQLiteDatabase,
-  x: { id?: number; from_account: number; to_account: number; amount: number; fee: number; date: string; note: string },
+  x: { id?: number; from_account: number; to_account: number; amount: number; to_amount?: number | null; fee: number; date: string; note: string },
 ) {
+  const fee = x.fee > 0 ? await amountsFor(db, x.from_account, x.fee) : null;
   await db.withTransactionAsync(async () => {
     if (x.id) await removeTransfer(db, x.id);
     let feeTxId: number | null = null;
-    if (x.fee > 0) {
+    if (fee) {
       const res = await db.runAsync(
-        'INSERT INTO transactions (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-        'expense', x.fee, await feesCategoryId(db), x.from_account, x.date, x.note ? `Transfer fee: ${x.note}` : 'Transfer fee',
+        'INSERT INTO transactions (type, amount, orig_amount, orig_currency, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'expense', fee.amount, fee.orig_amount, fee.orig_currency, await feesCategoryId(db), x.from_account, x.date,
+        x.note ? `Transfer fee: ${x.note}` : 'Transfer fee',
       );
       feeTxId = res.lastInsertRowId;
     }
     await db.runAsync(
-      'INSERT INTO transfers (from_account, to_account, amount, fee_tx_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-      x.from_account, x.to_account, x.amount, feeTxId, x.date, x.note,
+      'INSERT INTO transfers (from_account, to_account, amount, to_amount, fee_tx_id, date, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      x.from_account, x.to_account, x.amount, x.to_amount ?? null, feeTxId, x.date, x.note,
     );
   });
   notifyChange();
@@ -469,11 +515,20 @@ export async function processRecurring(db: SQLiteDatabase, today = todayISO()) {
   let added = 0;
   await db.withTransactionAsync(async () => {
     for (const r of due) {
+      const accountId = r.account_id ?? (await defaultAccountId(db));
+      // The rule's amount is in its account's currency. Without a rate yet, the rule waits and catches up later.
+      let a: Awaited<ReturnType<typeof amountsFor>>;
+      try {
+        a = await amountsFor(db, accountId, r.amount);
+      } catch (e) {
+        if (e instanceof MissingRateError) continue;
+        throw e;
+      }
       let next = r.next_date;
       for (let i = 0; next <= today && i < MAX_CATCH_UP; i++) {
         await db.runAsync(
-          'INSERT INTO transactions (type, amount, category_id, account_id, date, note, recurring_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          r.type, r.amount, r.category_id, r.account_id ?? (await defaultAccountId(db)), next, r.note, r.id,
+          'INSERT INTO transactions (type, amount, orig_amount, orig_currency, category_id, account_id, date, note, recurring_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          r.type, a.amount, a.orig_amount, a.orig_currency, r.category_id, accountId, next, r.note, r.id,
         );
         added++;
         next = advanceDate(next, r.frequency, r.anchor_day ?? undefined);
@@ -654,10 +709,13 @@ export async function deleteBill(db: SQLiteDatabase, id: number) {
 
 /** Records the payment as an expense today and moves the bill to its next due date. */
 export async function markBillPaid(db: SQLiteDatabase, bill: Bill, accountId?: number) {
+  const account = accountId ?? (await defaultAccountId(db));
+  // Bills are in the home currency; paid from a foreign-currency account, the original amount is worked out.
+  const a = await amountsFromHome(db, account, bill.amount);
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      'INSERT INTO transactions (type, amount, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?)',
-      'expense', bill.amount, bill.category_id, accountId ?? (await defaultAccountId(db)), todayISO(), bill.name,
+      'INSERT INTO transactions (type, amount, orig_amount, orig_currency, category_id, account_id, date, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'expense', a.amount, a.orig_amount, a.orig_currency, bill.category_id, account, todayISO(), bill.name,
     );
     if (bill.frequency === 'once') {
       await db.runAsync('UPDATE bills SET active = 0 WHERE id = ?', bill.id);
@@ -682,7 +740,7 @@ export async function resetAllData(db: SQLiteDatabase) {
     // Accounts are kept (they're set-up, like categories) but their opening balances are cleared.
     await db.execAsync(`
       DELETE FROM transfers; DELETE FROM savings_groups; DELETE FROM debts; DELETE FROM recurring; DELETE FROM transactions;
-      DELETE FROM budgets; DELETE FROM goals; DELETE FROM bills;
+      DELETE FROM budgets; DELETE FROM goals; DELETE FROM bills; DELETE FROM ious; DELETE FROM challenges; DELETE FROM net_worth;
       UPDATE accounts SET opening_balance = 0;
     `);
   });

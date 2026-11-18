@@ -6,6 +6,7 @@ import { resolveLanguage, setLanguage as applyLanguage, type LanguagePreference 
 import { setPeriodStartDay } from './dates';
 import { CUSTOM_COUNTRY, getCountry } from './countries';
 import { formatMajor, formatMoney } from './money';
+import { useSecurity } from './security';
 import type { ThemePreference } from './theme';
 
 type Settings = {
@@ -141,16 +142,24 @@ export function useSettings() {
  */
 export function useMoney(override?: string) {
   const settings = useSettings();
+  const { safeMode } = useSecurity();
   const currency = override ?? settings.currency;
-  const hide = settings.hideAmounts;
+  // Safe mode always hides amounts, whatever the setting says.
+  const hide = settings.hideAmounts || safeMode;
   return useMemo(
     () => ({
       currency,
+      hidden: hide,
       money: (cents: number, opts?: { compact?: boolean; sign?: boolean }) =>
         hide ? maskMoney(formatMoney(0, currency, opts)) : formatMoney(cents, currency, opts),
+      /** Like `money`, for an amount in another currency (e.g. a USD account). Null means the home currency. */
+      moneyIn: (cents: number, code: string | null | undefined, opts?: { compact?: boolean; sign?: boolean }) => {
+        const c = code || settings.currency;
+        return hide ? maskMoney(formatMoney(0, c, opts)) : formatMoney(cents, c, opts);
+      },
       major: (value: number, compact = false) => formatMajor(value, currency, compact),
     }),
-    [currency, hide],
+    [currency, hide, settings.currency],
   );
 }
 

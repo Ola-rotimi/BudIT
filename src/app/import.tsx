@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AccountPicker } from '@/components/pickers';
 import { ProScreen } from '@/components/ProLock';
+import { MissingRateError } from '@/db/currency';
 import { AppText, Button, Card, Divider, Loading, Screen, Segmented } from '@/components/ui';
 import { defaultAccountId, findDuplicates, importTransactions, listCategories, type ImportRow } from '@/db/queries';
 import type { Category } from '@/db/types';
@@ -180,8 +181,9 @@ function Preview({
       await importTransactions(db, accountId, toImport);
       Alert.alert(tr('Statement imported'), tr('{0} transaction{1} added.{2}', [toImport.length, toImport.length === 1 ? '' : 's', dupCount ? tr(' {0} already in BudT were skipped.', [dupCount]) : '']));
       goBack();
-    } catch {
-      Alert.alert(tr('Import failed'), tr('Nothing was imported. Please try again.'));
+    } catch (e) {
+      if (e instanceof MissingRateError) Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudT can get the official rate, then try again.'));
+      else Alert.alert(tr('Import failed'), tr('Nothing was imported. Please try again.'));
     } finally {
       setBusy(false);
     }

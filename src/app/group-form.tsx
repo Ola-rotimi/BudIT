@@ -72,7 +72,7 @@ export default function GroupFormScreen() {
       <Stepper label={tr('Your turn to collect')} value={myTurn} min={1} max={members} onChange={setTurn} suffix={`of ${members}`} />
       <View style={{ gap: 8 }}>
         <AppText variant="label">{tr('Pay in from / receive into')}</AppText>
-        <AccountPicker value={accountId} onChange={setAccountId} />
+        <AccountPicker value={accountId} onChange={setAccountId} homeOnly />
       </View>
       {cents > 0 && (
         <Card>

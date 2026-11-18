@@ -75,7 +75,30 @@
           "enableRemoteNotifications": false
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "SafeToSpend",
+              "displayName": "Safe to spend",
+              "description": "How much you can spend each day until payday",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
+              },
+              "android": {
+                "targetCellWidth": 2,
+                "targetCellHeight": 2
+              }
+            }
+          ]
+        }
+      ]
     ],
     "extra": {
       "router": {

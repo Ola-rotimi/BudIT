@@ -1,13 +1,14 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, View } from 'react-native';
 import { ColorPicker } from '@/components/pickers';
 import { AppText, Button, Field, HeaderDeleteButton, Screen, Segmented } from '@/components/ui';
-import { getAccount, removeAccount, saveAccount } from '@/db/queries';
+import { accountHasActivity, getAccount, removeAccount, saveAccount } from '@/db/queries';
 import type { AccountKind } from '@/db/types';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
-import { centsToInput, parseAmount } from '@/lib/money';
+import { FX_CURRENCIES } from '@/lib/fx';
+import { centsToInput, CURRENCIES, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -27,6 +28,10 @@ export default function AccountScreen() {
   const [balance, setBalance] = useState('');
   const [owed, setOwed] = useState(false);
   const [original, setOriginal] = useState<{ opening: number; balance: number } | null>(null);
+  const [accountCurrency, setAccountCurrency] = useState(currency);
+  const [pickCurrency, setPickCurrency] = useState(false);
+  // Once money has moved through an account its currency is fixed, so past amounts keep their meaning.
+  const [currencyLocked, setCurrencyLocked] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -38,8 +43,10 @@ export default function AccountScreen() {
       setBalance(centsToInput(Math.abs(a.balance)));
       setOwed(a.balance < 0);
       setOriginal({ opening: a.opening_balance, balance: a.balance });
+      setAccountCurrency(a.currency ?? currency);
     });
-  }, [db, id]);
+    accountHasActivity(db, id).then(setCurrencyLocked);
+  }, [db, id, currency]);
 
   const save = async () => {
     if (!name.trim()) return Alert.alert(tr('Give the account a name'));
@@ -48,7 +55,7 @@ export default function AccountScreen() {
     const signed = owed ? -cents : cents;
     // For an existing account the balance entered is "what it is now": shift the opening balance by the difference.
     const opening = original ? original.opening + (signed - original.balance) : signed;
-    await saveAccount(db, { id, name: name.trim(), kind, icon: ACCOUNT_KINDS[kind].icon, color, opening_balance: opening });
+    await saveAccount(db, { id, name: name.trim(), kind, icon: ACCOUNT_KINDS[kind].icon, color, opening_balance: opening, currency: accountCurrency });
     goBack();
   };
 
@@ -83,9 +90,60 @@ export default function AccountScreen() {
         <AppText variant="caption">{tr(ACCOUNT_KINDS[kind].example)}</AppText>
       </View>
       <Field label={tr('Name')} value={name} onChangeText={setName} placeholder={kind === 'mobile' ? tr('e.g. M-Pesa') : kind === 'cash' ? tr('e.g. Wallet') : tr('e.g. GTBank salary')} />
+      <View style={{ gap: 8 }}>
+        <AppText variant="label">{tr('Currency')}</AppText>
+        <Pressable
+          onPress={() => !currencyLocked && setPickCurrency((p) => !p)}
+          disabled={currencyLocked}
+          accessibilityRole="button"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
+          <Text style={{ fontSize: 22 }}>{FX_CURRENCIES[accountCurrency]?.flag ?? '💱'}</Text>
+          <View style={{ flex: 1 }}>
+            <AppText weight="700">
+              {accountCurrency} · {FX_CURRENCIES[accountCurrency]?.name ?? accountCurrency}
+            </AppText>
+            <AppText variant="caption">
+              {currencyLocked
+                ? tr('Can’t be changed once the account has transactions.')
+                : accountCurrency === currency
+                  ? tr('Your home currency. Tap to choose another, e.g. for a USD domiciliary account.')
+                  : tr('Totals and budgets convert it to {0} at the official rate.', [currency])}
+            </AppText>
+          </View>
+        </Pressable>
+        {pickCurrency && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {CURRENCIES.map((code) => {
+              const active = code === accountCurrency;
+              return (
+                <Pressable
+                  key={code}
+                  onPress={() => {
+                    setAccountCurrency(code);
+                    setPickCurrency(false);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={{
+                    width: 64,
+                    minHeight: 40,
+                    borderRadius: 10,
+                    borderWidth: 1.5,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderColor: active ? t.primary : t.border,
+                    backgroundColor: active ? t.primarySoft : t.inputBg,
+                  }}>
+                  <Text style={{ color: active ? t.primary : t.text, fontWeight: '700' }}>{code}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
       <Field
         label={id ? tr('Balance now') : tr('Current balance')}
-        prefix={currency}
+        prefix={accountCurrency}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"

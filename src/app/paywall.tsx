@@ -29,7 +29,6 @@ const FEATURES: { icon: IconName; title: string; text: string; vars?: unknown[] 
   { icon: 'people', title: N_('Unlimited savings groups'), text: N_('Track every ajo, esusu, susu, chama or stokvel you’re in.') },
   { icon: 'download', title: N_('Statement import'), text: N_('Bring in transactions from your bank or mobile-money CSV.') },
   { icon: 'trending-down', title: N_('Debt payoff planner'), text: N_('Avalanche or snowball, and your debt-free date.') },
-  { icon: 'swap-horizontal', title: N_('Currency converter'), text: N_('Official central bank exchange rates, with no parallel-market rates.') },
   { icon: 'trending-up', title: N_('Loan & savings calculators'), text: N_('Repayments, overpayment savings and compound growth.') },
 ];
 

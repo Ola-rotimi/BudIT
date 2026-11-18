@@ -20,11 +20,13 @@ export type LockConfig = {
   timeout: number;
   /** Hide the app in the app switcher and block screenshots. */
   privacy: boolean;
+  /** A second "safe" PIN is set: it opens BudT in safe mode (see `safeMode`). */
+  safePin: boolean;
 };
 
-const DEFAULT_CONFIG: LockConfig = { enabled: false, pinLength: 4, biometrics: false, timeout: 60, privacy: false };
+const DEFAULT_CONFIG: LockConfig = { enabled: false, pinLength: 4, biometrics: false, timeout: 60, privacy: false, safePin: false };
 
-const KEYS = { config: 'budt.lock', pin: 'budt.pin', failures: 'budt.pinFailures' };
+const KEYS = { config: 'budt.lock', pin: 'budt.pin', safePin: 'budt.safePin', failures: 'budt.pinFailures' };
 const STORE_OPTS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 
 /** Wrong PINs allowed before a lockout; each further miss doubles the wait. */
@@ -56,6 +58,20 @@ type Security = {
   /** Unlocks with the phone's own passcode, for a forgotten PIN. */
   unlockWithDeviceCredentials: () => Promise<boolean>;
   update: (changes: Partial<Pick<LockConfig, 'biometrics' | 'timeout' | 'privacy'>>) => Promise<void>;
+  /**
+   * True after unlocking with the safe PIN, for when someone forces you to open the app: amounts
+   * stay hidden, accounts, debts, groups and IOUs look empty, and sensitive settings need the real
+   * PIN. Ends the next time the app locks; leaving the app locks it straight away.
+   */
+  safeMode: boolean;
+  setSafePin: (pin: string) => Promise<void>;
+  removeSafePin: () => Promise<void>;
+  /** Whether `pin` is the safe PIN (to stop the real and safe PINs being the same). */
+  isSafePin: (pin: string) => Promise<boolean>;
+  /** Whether `pin` is the real PIN, without counting a wrong guess (to keep the safe PIN different). */
+  isRealPin: (pin: string) => Promise<boolean>;
+  /** Locks now, e.g. to leave safe mode. */
+  lockNow: () => void;
   /** True while the app isn't in the foreground and something should hide its content. */
   obscured: boolean;
   /** Time (epoch ms) of the last screenshot attempt while the privacy screen was on, or 0. */
@@ -99,11 +115,14 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const [failures, setFailures] = useState<Failures>({ count: 0, until: 0 });
   const [appState, setAppState] = useState(AppState.currentState);
   const [screenshotBlockedAt, setScreenshotBlockedAt] = useState(0);
+  const [safeMode, setSafeMode] = useState(false);
   const backgroundAt = useRef<number | null>(null);
   const configRef = useRef(config);
+  const safeModeRef = useRef(safeMode);
   useEffect(() => {
     configRef.current = config;
-  }, [config]);
+    safeModeRef.current = safeMode;
+  }, [config, safeMode]);
 
   useEffect(() => {
     (async () => {
@@ -125,7 +144,8 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       if (next === 'active') {
         const cfg = configRef.current;
         const away = backgroundAt.current === null ? 0 : Date.now() - backgroundAt.current;
-        if (cfg.enabled && backgroundAt.current !== null && away >= cfg.timeout * 1000) setLocked(true);
+        // Safe mode never survives leaving the app, whatever the timeout.
+        if (cfg.enabled && backgroundAt.current !== null && (away >= cfg.timeout * 1000 || safeModeRef.current)) setLocked(true);
         backgroundAt.current = null;
         // Biometrics may have been added or removed in system settings meanwhile.
         detectBiometrics().then(setBiometricKind);
@@ -186,13 +206,18 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     return { ok: false, lockedUntil: until, attemptsLeft: Math.max(0, FREE_ATTEMPTS - count) };
   }, [failures.count]);
 
+  const matches = useCallback(async (pin: string, key: string) => {
+    const stored = await readJson<PinHash>(key);
+    return !!stored && (await verifyPin(pin, stored));
+  }, []);
+
+  /** Only the real PIN passes (the safe PIN is "wrong" here, so it can't change settings). */
   const checkPin = useCallback(
     async (pin: string): Promise<PinResult> => {
       if (failures.until > Date.now()) return { ok: false, lockedUntil: failures.until, attemptsLeft: 0 };
-      const stored = await readJson<PinHash>(KEYS.pin);
-      return recordAttempt(!!stored && (await verifyPin(pin, stored)));
+      return recordAttempt(await matches(pin, KEYS.pin));
     },
-    [failures.until, recordAttempt],
+    [failures.until, recordAttempt, matches],
   );
 
   const value = useMemo<Security>(() => {
@@ -203,6 +228,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     };
     const unlockAfter = (ok: boolean) => {
       if (ok) {
+        setSafeMode(false);
         setLocked(false);
         recordAttempt(true);
       }
@@ -220,16 +246,25 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       },
       disableLock: async () => {
         await SecureStore.deleteItemAsync(KEYS.pin, STORE_OPTS);
-        await saveConfig({ ...config, enabled: false, biometrics: false });
+        await SecureStore.deleteItemAsync(KEYS.safePin, STORE_OPTS);
+        await saveConfig({ ...config, enabled: false, biometrics: false, safePin: false });
       },
       changePin: async (pin, pinLength) => {
         await setPin(pin);
-        await saveConfig({ ...config, pinLength });
+        // A safe PIN of the old length could no longer be typed on the new pad.
+        if (pinLength !== config.pinLength) await SecureStore.deleteItemAsync(KEYS.safePin, STORE_OPTS);
+        await saveConfig({ ...config, pinLength, safePin: pinLength === config.pinLength && config.safePin });
       },
       checkPin,
       unlockWithPin: async (pin) => {
-        const result = await checkPin(pin);
-        if (result.ok) setLocked(false);
+        if (failures.until > Date.now()) return { ok: false, lockedUntil: failures.until, attemptsLeft: 0 };
+        const real = await matches(pin, KEYS.pin);
+        const safe = !real && config.safePin && (await matches(pin, KEYS.safePin));
+        const result = await recordAttempt(real || safe);
+        if (result.ok) {
+          setSafeMode(safe);
+          setLocked(false);
+        }
         return result;
       },
       unlockWithBiometrics: async () => {
@@ -249,8 +284,22 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       update: (changes) => saveConfig({ ...config, ...changes }),
       obscured: ready && (config.enabled || config.privacy) && appState !== 'active',
       screenshotBlockedAt,
+      safeMode: ready && config.enabled && safeMode,
+      setSafePin: async (pin) => {
+        await writeJson(KEYS.safePin, await hashPin(pin));
+        await saveConfig({ ...config, safePin: true });
+      },
+      removeSafePin: async () => {
+        await SecureStore.deleteItemAsync(KEYS.safePin, STORE_OPTS);
+        await saveConfig({ ...config, safePin: false });
+      },
+      isSafePin: (pin) => (config.safePin ? matches(pin, KEYS.safePin) : Promise.resolve(false)),
+      isRealPin: (pin) => matches(pin, KEYS.pin),
+      lockNow: () => {
+        if (config.enabled) setLocked(true);
+      },
     };
-  }, [ready, config, locked, biometricKind, failures.until, appState, screenshotBlockedAt, saveConfig, checkPin, recordAttempt]);
+  }, [ready, config, locked, biometricKind, failures.until, appState, screenshotBlockedAt, safeMode, saveConfig, checkPin, recordAttempt, matches]);
 
   // Render nothing until the lock state is known, so a locked app never flashes its content.
   if (!ready) return null;

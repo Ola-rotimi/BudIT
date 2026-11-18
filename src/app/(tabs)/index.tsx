@@ -3,16 +3,21 @@ import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { ChallengeCard } from '@/components/ChallengeCard';
 import { TransactionRow, useBudgetColor } from '@/components/finance';
+import { useAmountsToggle } from '@/components/HideAmountsButton';
+import { SafeToSpendCard } from '@/components/SafeToSpendCard';
 import { ProBadge } from '@/components/ProLock';
 import { AppText, Button, Card, EmptyState, IconBadge, ListRow, Loading, ProgressBar, Screen, SectionHeader } from '@/components/ui';
-import { budgetsWithSpending, getSetting, listAccounts, listBills, listGoals, monthTotals, recentTransactions, transactionCount } from '@/db/queries';
+import { safeToSpendData } from '@/db/planning';
+import { budgetsWithSpending, getSetting, listGoals, monthTotals, recentTransactions, transactionCount } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { currentMonthKey, dayLabel, daysBetween, monthLabel, periodProgress, todayISO } from '@/lib/dates';
 import { BACKUP_REMINDER_DAYS, LAST_BACKUP_KEY } from '@/lib/backup';
 import { formatPercent } from '@/lib/money';
 import { takePendingRoute } from '@/lib/onboarding';
 import { usePro } from '@/lib/pro';
+import { safeToSpend, SPENDABLE_KINDS } from '@/lib/safeToSpend';
 import { useMoney, useSettings } from '@/lib/settings';
 import { BRAND, useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -25,7 +30,8 @@ const HERO_MAX_SCALE = 1.3;
 export default function HomeScreen() {
   const t = useTheme();
   const { money } = useMoney();
-  const { currencyChosen, country, hideAmounts, setHideAmounts } = useSettings();
+  const { currencyChosen, country } = useSettings();
+  const amounts = useAmountsToggle();
   const budgetColor = useBudgetColor();
   const { isPro } = usePro();
   const month = currentMonthKey();
@@ -38,22 +44,24 @@ export default function HomeScreen() {
   }, []);
 
   const data = useQuery(`home:${month}:${today}`, async (db) => {
-    const [totals, accounts, budgets, bills, goals, recent, txCount, lastBackup] = await Promise.all([
+    const [totals, plan, budgets, goals, recent, txCount, lastBackup] = await Promise.all([
       monthTotals(db, month),
-      listAccounts(db),
+      safeToSpendData(db),
       budgetsWithSpending(db, month),
-      listBills(db),
       listGoals(db),
       recentTransactions(db, 5),
       transactionCount(db),
       getSetting(db, LAST_BACKUP_KEY),
     ]);
-    return { totals, accounts, budgets, bills, goals, recent, txCount, lastBackup };
+    return { totals, plan, accounts: plan.accounts, bills: plan.bills, budgets, goals, recent, txCount, lastBackup };
   });
 
   if (!data) return <Loading />;
-  const { totals, accounts, budgets, bills, goals, recent, txCount, lastBackup } = data;
-  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const { totals, plan, accounts, budgets, bills, goals, recent, txCount, lastBackup } = data;
+  // In the home currency; accounts whose exchange rate isn't known yet are left out.
+  const totalBalance = accounts.reduce((s, a) => s + (a.home_balance ?? 0), 0);
+  const safe = safeToSpend({ today, ...plan });
+  const hasSpendable = accounts.some((a) => SPENDABLE_KINDS.includes(a.kind) && !a.currency && a.balance !== 0);
   // Nudge towards a backup once there's enough data to lose, and the last one is old (or never made).
   const backupAgeDays = lastBackup ? daysBetween(lastBackup.slice(0, 10), today) : null;
   const backupDue = txCount >= 20 && (backupAgeDays === null || backupAgeDays >= BACKUP_REMINDER_DAYS);
@@ -86,11 +94,11 @@ export default function HomeScreen() {
           <View style={styles.heroTop}>
             <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85, flex: 1 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>{tr('{0} · net', [monthLabel(month)])}</AppText>
             <Pressable
-              onPress={() => setHideAmounts(!hideAmounts)}
+              onPress={amounts.toggle}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel={hideAmounts ? tr('Show amounts') : tr('Hide amounts')}>
-              <Ionicons name={hideAmounts ? 'eye-off-outline' : 'eye-outline'} size={20} color={ON_HERO} />
+              accessibilityLabel={amounts.hidden ? tr('Show amounts') : tr('Hide amounts')}>
+              <Ionicons name={amounts.hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={ON_HERO} />
             </Pressable>
           </View>
           <AppText
@@ -135,6 +143,9 @@ export default function HomeScreen() {
           onPress={() => router.push({ pathname: '/transaction', params: { type: 'income' } })}
         />
       </View>
+
+      <SafeToSpendCard result={safe} hasAccounts={hasSpendable || safe.items.length > 0} />
+      <ChallengeCard />
 
       {backupDue && (
         <Card onPress={() => router.push('/settings')} style={styles.smartCard}>

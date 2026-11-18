@@ -56,6 +56,8 @@
     <li>bills</li>
     <li>accounts and wallets, transfers and recurring entries</li>
     <li>debts and savings groups (ajo, esusu, chama and similar)</li>
+    <li>IOUs and split bills, including the names you give the people involved</li>
+    <li>spending challenges and a monthly record of your net worth</li>
     <li>your settings, such as country, currency and theme</li>
   </ul>
   <p>We don’t operate servers that receive this data, and we can’t see, access or recover it.</p>
@@ -64,7 +66,9 @@
   <ul>
     <li><strong>Encryption on your device.</strong> In versions installed from the App Store or Google Play, BudT’s database is encrypted with AES-256 (SQLCipher). The encryption key is generated on your device and kept in its secure keystore (the iOS Keychain or Android Keystore). It is never sent to us or anyone else.</li>
     <li><strong>App lock.</strong> You can require a PIN, and optionally Face ID or a fingerprint, to open BudT. Your PIN is stored only as a salted hash in the secure keystore, never in plain text. Face ID and fingerprint checks are carried out by your phone’s operating system; BudT never receives your biometric data.</li>
-    <li><strong>Privacy screen and hidden amounts.</strong> You can hide BudT’s contents in the recent-apps view and block screenshots, and mask balances on screen.</li>
+    <li><strong>Privacy screen and hidden amounts.</strong> You can hide BudT’s contents in the recent-apps view and block screenshots, and mask balances on screen. Showing hidden amounts again, exporting or erasing data and turning protections off ask for your PIN, biometrics or phone passcode.</li>
+    <li><strong>Safe PIN.</strong> You can set a second PIN that opens BudT with amounts hidden and accounts, debts, groups and IOUs shown as empty. It is stored the same way as your PIN.</li>
+    <li><strong>Rooted or jailbroken phones.</strong> BudT checks on your device whether it appears to be rooted or jailbroken, and warns you if so. The result is not sent anywhere.</li>
   </ul>
   <p>The tax, pension, loan and savings calculators run entirely on your device. Nothing you type into them is saved or sent anywhere.</p>
 
@@ -85,6 +89,8 @@
   <ul>
     <li><strong>Statement import.</strong> When you import a bank or mobile-money statement, BudT reads the file you choose on your device. The file is not uploaded anywhere, and BudT deletes its temporary copy after reading it.</li>
     <li><strong>Reminders.</strong> Bill and daily reminders are local notifications scheduled by your phone. They don’t go through any server. While the app lock or hidden amounts is on, reminders leave out amounts so they don’t show on your lock screen.</li>
+    <li><strong>Home-screen widget.</strong> If you add BudT’s widget, it shows your safe-to-spend amount on your home screen. While the app lock or hidden amounts is on, the widget shows dots instead of figures.</li>
+    <li><strong>Backup reminders.</strong> A local notification reminds you to back up when your last backup is 30 days old. You can turn it off in Settings.</li>
     <li><strong>Annual summary.</strong> The PDF summary is created on your device and only goes where you choose to share it.</li>
   </ul>
 

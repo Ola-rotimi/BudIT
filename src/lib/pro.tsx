@@ -1,6 +1,7 @@
 /**
- * BudT Pro: subscription state via RevenueCat. Pro unlocks the Tax calculator, Pension planner
- * and currency converter. In Expo Go, RevenueCat runs in Preview API mode (no real charges).
+ * BudT Pro: subscription state via RevenueCat. Pro unlocks the Tax calculator, Pension planner and
+ * the other paid tools (the currency converter is free). In Expo Go, RevenueCat runs in Preview API
+ * mode (no real charges).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
