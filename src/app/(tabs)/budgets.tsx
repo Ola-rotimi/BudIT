@@ -10,6 +10,7 @@ import { currentMonthKey, periodProgress } from '@/lib/dates';
 import { formatPercent } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 export default function BudgetsScreen() {
   const t = useTheme();
@@ -43,31 +44,27 @@ export default function BudgetsScreen() {
         <Card>
           <EmptyState
             icon="pie-chart-outline"
-            title="No budgets yet"
-            message="Let Smart budget build one from your income, or set a monthly limit for each category yourself."
-            action={{ label: 'Build with Smart budget', onPress: () => router.push('/smart-budget') }}
+            title={tr('No budgets yet')}
+            message={tr('Let Smart budget build one from your income, or set a monthly limit for each category yourself.')}
+            action={{ label: tr('Build with Smart budget'), onPress: () => router.push('/smart-budget') }}
           />
-          <Button title="Create a budget manually" variant="ghost" onPress={() => openBudget()} />
+          <Button title={tr('Create a budget manually')} variant="ghost" onPress={() => openBudget()} />
         </Card>
       ) : (
         <>
           <Card>
-            <AppText variant="label">Total budget</AppText>
+            <AppText variant="label">{tr('Total budget')}</AppText>
             <View style={styles.between}>
               <AppText variant="title">{money(total - spent)}</AppText>
               <AppText variant="caption">{total >= spent ? 'left' : 'over budget'}</AppText>
             </View>
             <ProgressBar progress={ratio} color={budgetColor(ratio, t.primary)} height={10} />
             <View style={styles.between}>
-              <AppText variant="caption">
-                Spent {money(spent)} of {money(total)}
-              </AppText>
+              <AppText variant="caption">{tr('Spent {0} of {1}', [money(spent), money(total)])}</AppText>
               <AppText variant="caption">{formatPercent(ratio, 0)}</AppText>
             </View>
             {isCurrent && ratio > elapsed + 0.05 && ratio <= 1 && (
-              <AppText variant="caption" color={t.warning}>
-                You’ve used {formatPercent(ratio, 0)} of your budget with {formatPercent(1 - elapsed, 0)} of the month to go.
-              </AppText>
+              <AppText variant="caption" color={t.warning}>{tr('You’ve used {0} of your budget with {1} of the month to go.', [formatPercent(ratio, 0), formatPercent(1 - elapsed, 0)])}</AppText>
             )}
           </Card>
 
@@ -80,10 +77,8 @@ export default function BudgetsScreen() {
                   <View style={styles.rowTop}>
                     <IconBadge icon={b.icon} color={b.color} size={38} />
                     <View style={{ flex: 1 }}>
-                      <AppText weight="600">{b.name}</AppText>
-                      <AppText variant="caption">
-                        {money(b.spent)} of {money(b.budget)}
-                      </AppText>
+                      <AppText weight="600">{tr(b.name)}</AppText>
+                      <AppText variant="caption">{tr('{0} of {1}', [money(b.spent), money(b.budget)])}</AppText>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <AppText weight="700" color={left < 0 ? t.expense : undefined}>
@@ -102,16 +97,16 @@ export default function BudgetsScreen() {
 
       {unbudgeted.length > 0 && (
         <View style={{ gap: 10 }}>
-          <SectionHeader title="Spending without a budget" />
+          <SectionHeader title={tr('Spending without a budget')} />
           <Card>
             {unbudgeted.map((c) => (
               <Pressable key={c.id} onPress={() => openBudget(c.id)} style={({ pressed }) => [styles.rowTop, pressed && { opacity: 0.6 }]}>
                 <IconBadge icon={c.icon} color={c.color} size={34} />
                 <AppText style={{ flex: 1 }} weight="600">
-                  {c.name}
+                  {tr(c.name)}
                 </AppText>
                 <AppText weight="600">{money(c.total)}</AppText>
-                <Ionicons name="add-circle-outline" size={22} color={t.primary} accessibilityLabel={`Set budget for ${c.name}`} />
+                <Ionicons name="add-circle-outline" size={22} color={t.primary} accessibilityLabel={tr('Set budget for {0}', [c.name])} />
               </Pressable>
             ))}
           </Card>

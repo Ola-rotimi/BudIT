@@ -12,6 +12,7 @@ import { currentMonthKey, daysInMonth, monthLabel, periodProgress, shiftMonth } 
 import { formatPercent } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 export default function InsightsScreen() {
   const t = useTheme();
@@ -38,19 +39,19 @@ export default function InsightsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Insights' }} />
+      <Stack.Screen options={{ title: tr('Insights') }} />
       <MonthSwitcher month={month} onChange={setMonth} />
 
       <View style={styles.grid}>
-        <Stat label="Savings rate" value={savingsRate === null ? '—' : formatPercent(savingsRate, 0)} color={savingsRate !== null && savingsRate < 0 ? t.expense : t.income} />
-        <Stat label="Avg. daily spend" value={money(Math.round(current.expense / daysCounted))} />
+        <Stat label={tr('Savings rate')} value={savingsRate === null ? '—' : formatPercent(savingsRate, 0)} color={savingsRate !== null && savingsRate < 0 ? t.expense : t.income} />
+        <Stat label={tr('Avg. daily spend')} value={money(Math.round(current.expense / daysCounted))} />
         <Stat
-          label={`vs ${monthLabel(shiftMonth(month, -1), true)}`}
+          label={tr('vs {0}', [monthLabel(shiftMonth(month, -1), true)])}
           value={expenseChange === null ? '—' : `${expenseChange > 0 ? '+' : ''}${formatPercent(expenseChange, 0)}`}
           color={expenseChange === null ? undefined : expenseChange > 0 ? t.expense : t.income}
-          caption="spending"
+          caption={tr('spending')}
         />
-        <Stat label="6-month avg. spend" value={money(Math.round(avgExpense))} />
+        <Stat label={tr('6-month avg. spend')} value={money(Math.round(avgExpense))} />
       </View>
 
       <Card>
@@ -58,16 +59,16 @@ export default function InsightsScreen() {
           value={type}
           onChange={setType}
           options={[
-            { value: 'expense', label: 'Spending' },
-            { value: 'income', label: 'Income' },
+            { value: 'expense', label: tr('Spending') },
+            { value: 'income', label: tr('Income') },
           ]}
         />
         {categories.length === 0 ? (
-          <EmptyState icon="pie-chart-outline" title={`No ${type === 'expense' ? 'spending' : 'income'} in ${monthLabel(month)}`} />
+          <EmptyState icon="pie-chart-outline" title={tr('No {0} in {1}', [type === 'expense' ? tr('spending') : tr('income'), monthLabel(month)])} />
         ) : (
           <>
             <DonutChart data={categories.map((c) => ({ value: c.total, color: c.color }))}>
-              <AppText variant="caption">Total</AppText>
+              <AppText variant="caption">{tr('Total')}</AppText>
               <AppText variant="heading" numberOfLines={1} adjustsFontSizeToFit style={{ maxWidth: 120 }}>
                 {money(total)}
               </AppText>
@@ -78,10 +79,8 @@ export default function InsightsScreen() {
                   <View style={styles.row}>
                     <IconBadge icon={c.icon} color={c.color} size={32} />
                     <View style={{ flex: 1 }}>
-                      <AppText weight="600">{c.name}</AppText>
-                      <AppText variant="caption">
-                        {c.count} transaction{c.count === 1 ? '' : 's'} · {formatPercent(c.total / total, 0)}
-                      </AppText>
+                      <AppText weight="600">{tr(c.name)}</AppText>
+                      <AppText variant="caption">{tr('{0} transaction{1} · {2}', [c.count, c.count === 1 ? '' : 's', formatPercent(c.total / total, 0)])}</AppText>
                     </View>
                     <AppText weight="700">{money(c.total)}</AppText>
                   </View>
@@ -94,7 +93,7 @@ export default function InsightsScreen() {
       </Card>
 
       <Card>
-        <AppText variant="heading">Last 6 months</AppText>
+        <AppText variant="heading">{tr('Last 6 months')}</AppText>
         <BarChart
           labels={trend.map((m) => monthLabel(m.month, true))}
           series={[
@@ -105,8 +104,8 @@ export default function InsightsScreen() {
         />
         <Legend
           items={[
-            { color: t.income, label: 'Income' },
-            { color: t.expense, label: 'Expenses' },
+            { color: t.income, label: tr('Income') },
+            { color: t.expense, label: tr('Expenses') },
           ]}
         />
       </Card>

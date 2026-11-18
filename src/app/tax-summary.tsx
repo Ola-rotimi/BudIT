@@ -13,6 +13,7 @@ import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { buildTaxSummary, taxSummaryHtml } from '@/lib/taxSummary';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 /** Year-end summary of income, spending and estimated tax, shareable as a PDF. */
 export default function TaxSummaryScreen() {
@@ -32,9 +33,9 @@ export default function TaxSummaryScreen() {
   if (!isPro) {
     return (
       <ProScreen
-        screenTitle="Annual summary"
-        title="Your year, ready for tax time"
-        message="BudT Pro turns a year of records into a PDF: income and spending by category, plus an estimate of the tax due on your salary."
+        screenTitle={tr('Annual summary')}
+        title={tr('Your year, ready for tax time')}
+        message={tr('BudT Pro turns a year of records into a PDF: income and spending by category, plus an estimate of the tax due on your salary.')}
       />
     );
   }
@@ -50,9 +51,9 @@ export default function TaxSummaryScreen() {
     setBusy(true);
     try {
       const { uri } = await Print.printToFileAsync({ html: taxSummaryHtml(summary, currency), width: 595, height: 842 });
-      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `BudT summary ${year}` });
+      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: tr('BudT summary {0}', [year]) });
     } catch {
-      Alert.alert('Couldn’t create the PDF', 'Please try again.');
+      Alert.alert(tr('Couldn’t create the PDF'), tr('Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -60,65 +61,57 @@ export default function TaxSummaryScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Annual summary' }} />
+      <Stack.Screen options={{ title: tr('Annual summary') }} />
       <View style={styles.years}>
-        <Pressable onPress={() => setYear(year - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Previous year">
+        <Pressable onPress={() => setYear(year - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr('Previous year')}>
           <Ionicons name="chevron-back" size={22} color={t.primary} />
         </Pressable>
         <AppText variant="heading">{year}</AppText>
-        <Pressable onPress={() => setYear(year + 1)} disabled={year >= thisYear} hitSlop={10} accessibilityRole="button" accessibilityLabel="Next year">
+        <Pressable onPress={() => setYear(year + 1)} disabled={year >= thisYear} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr('Next year')}>
           <Ionicons name="chevron-forward" size={22} color={year >= thisYear ? t.border : t.primary} />
         </Pressable>
       </View>
 
       {!summary.totalIncome && !summary.totalExpense ? (
         <Card>
-          <AppText variant="caption">Nothing recorded in {year}.</AppText>
+          <AppText variant="caption">{tr('Nothing recorded in {0}.', [year])}</AppText>
         </Card>
       ) : (
         <>
           <Card>
-            <StatLine label="Total income" value={money(summary.totalIncome)} color={t.income} bold />
+            <StatLine label={tr('Total income')} value={money(summary.totalIncome)} color={t.income} bold />
             {summary.income.slice(0, 5).map((r) => (
-              <StatLine key={r.id} label={`  ${r.name}`} value={money(r.total)} />
+              <StatLine key={r.id} label={`  ${tr(r.name)}`} value={money(r.total)} />
             ))}
             <Divider />
-            <StatLine label="Total spending" value={money(summary.totalExpense)} color={t.expense} bold />
+            <StatLine label={tr('Total spending')} value={money(summary.totalExpense)} color={t.expense} bold />
             {summary.expense.slice(0, 5).map((r) => (
-              <StatLine key={r.id} label={`  ${r.name}`} value={money(r.total)} />
+              <StatLine key={r.id} label={`  ${tr(r.name)}`} value={money(r.total)} />
             ))}
           </Card>
 
           <Card>
-            <AppText variant="heading">Estimated tax on salary</AppText>
+            <AppText variant="heading">{tr('Estimated tax on salary')}</AppText>
             {e ? (
               <>
-                <AppText variant="caption">
-                  {e.country}, {e.taxYear} rules, based on {money(summary.salary)} of salary recorded this year.
-                </AppText>
+                <AppText variant="caption">{tr('{0}, {1} rules, based on {2} of salary recorded this year.', [e.country, e.taxYear, money(summary.salary)])}</AppText>
                 {e.contributions.map((c) => (
-                  <StatLine key={c.name} label={c.name} value={money(c.amount)} />
+                  <StatLine key={c.name} label={tr(c.name)} value={money(c.amount)} />
                 ))}
-                {e.rentRelief > 0 && <StatLine label="Rent relief" value={money(e.rentRelief)} />}
-                <StatLine label="Taxable income" value={money(e.taxable)} />
-                <StatLine label="Estimated income tax" value={money(e.incomeTax)} color={t.expense} bold />
-                <AppText variant="caption">Compare this with the PAYE on your payslips or your employer’s year-end tax certificate.</AppText>
+                {e.rentRelief > 0 && <StatLine label={tr('Rent relief')} value={money(e.rentRelief)} />}
+                <StatLine label={tr('Taxable income')} value={money(e.taxable)} />
+                <StatLine label={tr('Estimated income tax')} value={money(e.incomeTax)} color={t.expense} bold />
+                <AppText variant="caption">{tr('Compare this with the PAYE on your payslips or your employer’s year-end tax certificate.')}</AppText>
               </>
             ) : (
               <AppText variant="caption">
-                {!preset
-                  ? 'Choose your country in Settings to estimate the tax on your salary.'
-                  : preset.currency !== currency
-                    ? `Your records are in ${currency}, but ${preset.name}’s tax rules use ${preset.currency}, so there’s no estimate.`
-                    : 'Record your pay under the Salary category to see an estimate.'}
+                {!preset ? tr('Choose your country in Settings to estimate the tax on your salary.') : preset.currency !== currency ? tr('Your records are in {0}, but {1}’s tax rules use {2}, so there’s no estimate.', [currency, preset.name, preset.currency]) : tr('Record your pay under the Salary category to see an estimate.')}
               </AppText>
             )}
           </Card>
 
-          <Button title={busy ? 'Preparing PDF…' : 'Share as PDF'} icon="document-text-outline" onPress={share} disabled={busy} />
-          <AppText variant="caption" style={{ textAlign: 'center' }}>
-            Covers 1 January – 31 December. Not tax advice; confirm with your tax authority before filing.
-          </AppText>
+          <Button title={busy ? tr('Preparing PDF…') : tr('Share as PDF')} icon="document-text-outline" onPress={share} disabled={busy} />
+          <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Covers 1 January – 31 December. Not tax advice; confirm with your tax authority before filing.')}</AppText>
         </>
       )}
     </Screen>

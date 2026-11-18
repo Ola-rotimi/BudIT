@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -24,11 +24,19 @@ import {
   type ParsedStatement,
 } from '@/lib/statementImport';
 import { useTheme } from '@/lib/theme';
+import { tr, N_ } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 const PREVIEW_LIMIT = 200;
 
 type Field = keyof ColumnMap;
-const FIELD_LABELS: Record<Field, string> = { date: 'Date', description: 'Description', amount: 'Amount (+/−)', debit: 'Money out', credit: 'Money in' };
+const FIELD_LABELS: Record<Field, string> = {
+  date: N_('Date'),
+  description: N_('Description'),
+  amount: N_('Amount (+/−)'),
+  debit: N_('Money out'),
+  credit: N_('Money in'),
+};
 
 /** Imports a bank or mobile-money statement exported as CSV. */
 export default function ImportScreen() {
@@ -49,9 +57,9 @@ export default function ImportScreen() {
   if (!isPro) {
     return (
       <ProScreen
-        screenTitle="Import statement"
-        title="Import your bank statements"
-        message="BudT Pro reads CSV statements from your bank or mobile-money app, sorts each line into a category and skips anything already recorded."
+        screenTitle={tr('Import statement')}
+        title={tr('Import your bank statements')}
+        message={tr('BudT Pro reads CSV statements from your bank or mobile-money app, sorts each line into a category and skips anything already recorded.')}
       />
     );
   }
@@ -65,15 +73,15 @@ export default function ImportScreen() {
       const detected = detectColumns(parseCsv(text));
       if (!detected) {
         return Alert.alert(
-          'Couldn’t read that statement',
-          'BudT needs a CSV file with a date column and an amount (or money in / money out) column. If your bank gives a PDF or Excel file, open it in a spreadsheet app and save it as CSV.',
+          tr('Couldn’t read that statement'),
+          tr('BudT needs a CSV file with a date column and an amount (or money in / money out) column. If your bank gives a PDF or Excel file, open it in a spreadsheet app and save it as CSV.'),
         );
       }
       setParsed(detected);
       setColumns(detected.columns);
       setFileName(res.assets[0].name);
     } catch {
-      Alert.alert('Couldn’t open the file', 'Please try again, or export the statement again from your bank.');
+      Alert.alert(tr('Couldn’t open the file'), tr('Please try again, or export the statement again from your bank.'));
     } finally {
       if (file.exists) file.delete();
     }
@@ -82,17 +90,13 @@ export default function ImportScreen() {
   if (!categories) return <Loading />;
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Import statement' }} />
+      <Stack.Screen options={{ title: tr('Import statement') }} />
       {!parsed || !columns ? (
         <Card style={{ gap: 12 }}>
           <Ionicons name="document-text-outline" size={36} color={t.primary} />
-          <AppText variant="heading">Import a bank or mobile-money statement</AppText>
-          <AppText variant="caption">
-            1. In your bank or mobile-money app (or internet banking), download your statement as CSV. For Excel files, open them and “Save as” CSV.{'\n'}
-            2. Pick the file here. BudT finds the dates and amounts, suggests categories and skips anything you’ve already recorded.{'\n'}
-            3. Check the preview and import. The file is read on your phone and never uploaded.
-          </AppText>
-          <Button title="Choose CSV file" icon="folder-open-outline" onPress={pick} />
+          <AppText variant="heading">{tr('Import a bank or mobile-money statement')}</AppText>
+          <AppText variant="caption">{tr('1. In your bank or mobile-money app (or internet banking), download your statement as CSV. For Excel files, open them and “Save as” CSV.\n2. Pick the file here. BudT finds the dates and amounts, suggests categories and skips anything you’ve already recorded.\n3. Check the preview and import. The file is read on your phone and never uploaded.')}</AppText>
+          <Button title={tr('Choose CSV file')} icon="folder-open-outline" onPress={pick} />
         </Card>
       ) : (
         <Preview
@@ -174,10 +178,10 @@ function Preview({
     try {
       const toImport: ImportRow[] = chosen.map((r) => ({ date: r.date, amount: r.amount, type: r.type, note: r.description, category_id: r.category!.id }));
       await importTransactions(db, accountId, toImport);
-      Alert.alert('Statement imported', `${toImport.length} transaction${toImport.length === 1 ? '' : 's'} added.${dupCount ? ` ${dupCount} already in BudT were skipped.` : ''}`);
-      router.back();
+      Alert.alert(tr('Statement imported'), tr('{0} transaction{1} added.{2}', [toImport.length, toImport.length === 1 ? '' : 's', dupCount ? tr(' {0} already in BudT were skipped.', [dupCount]) : '']));
+      goBack();
     } catch {
-      Alert.alert('Import failed', 'Nothing was imported. Please try again.');
+      Alert.alert(tr('Import failed'), tr('Nothing was imported. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -191,27 +195,23 @@ function Preview({
             <AppText weight="700" numberOfLines={1}>
               {fileName}
             </AppText>
-            <AppText variant="caption">
-              {rows.length} transaction{rows.length === 1 ? '' : 's'} found{skipped ? ` · ${skipped} lines skipped (no date or amount)` : ''}
-            </AppText>
+            <AppText variant="caption">{tr('{0} transaction{1} found{2}', [rows.length, rows.length === 1 ? '' : 's', skipped ? tr(' · {0} lines skipped (no date or amount)', [skipped]) : ''])}</AppText>
           </View>
           <Pressable onPress={onReset} hitSlop={8} accessibilityRole="button">
-            <AppText weight="600" color={t.primary}>
-              Change file
-            </AppText>
+            <AppText weight="600" color={t.primary}>{tr('Change file')}</AppText>
           </Pressable>
         </View>
         <Divider />
-        <AppText variant="label">Import into</AppText>
+        <AppText variant="label">{tr('Import into')}</AppText>
         <AccountPicker value={accountId} onChange={setAccountId} />
       </Card>
 
       <Card>
-        <AppText variant="heading">Columns</AppText>
-        <AppText variant="caption">BudT guessed these from the file. Tap to change if something looks wrong.</AppText>
+        <AppText variant="heading">{tr('Columns')}</AppText>
+        <AppText variant="caption">{tr('BudT guessed these from the file. Tap to change if something looks wrong.')}</AppText>
         {(['date', 'description', ...(columns.amount !== -1 ? ['amount'] : ['debit', 'credit'])] as Field[]).map((field) => (
           <View key={field} style={{ gap: 6 }}>
-            <AppText weight="600">{FIELD_LABELS[field]}</AppText>
+            <AppText weight="600">{tr(FIELD_LABELS[field])}</AppText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
               {parsed.headers.map((h, idx) => {
                 const active = columns[field] === idx;
@@ -233,15 +233,15 @@ function Preview({
           value={order}
           onChange={setOrder}
           options={[
-            { value: 'dmy', label: 'Day/Month/Year' },
-            { value: 'mdy', label: 'Month/Day/Year' },
+            { value: 'dmy', label: tr('Day/Month/Year') },
+            { value: 'mdy', label: tr('Month/Day/Year') },
           ]}
         />
       </Card>
 
       <Card style={{ gap: 6 }}>
-        <AppText variant="heading">Preview</AppText>
-        {dupCount > 0 && <AppText variant="caption">{dupCount} already recorded in this account will be skipped (shown faded).</AppText>}
+        <AppText variant="heading">{tr('Preview')}</AppText>
+        {dupCount > 0 && <AppText variant="caption">{tr('{0} already recorded in this account will be skipped (shown faded).', [dupCount])}</AppText>}
         {withCategories.slice(0, PREVIEW_LIMIT).map((r, i) => {
           const dup = !!duplicates?.[i];
           const off = dup || excluded.has(r.line);
@@ -249,10 +249,10 @@ function Preview({
             <Pressable key={r.line} onPress={() => !dup && toggle(r.line)} style={[styles.row, off && { opacity: 0.4 }]} accessibilityRole="checkbox" accessibilityState={{ checked: !off }}>
               <Ionicons name={off ? 'square-outline' : 'checkbox'} size={20} color={off ? t.muted : t.primary} />
               <View style={{ flex: 1 }}>
-                <AppText numberOfLines={1}>{r.description || '(no description)'}</AppText>
+                <AppText numberOfLines={1}>{r.description || tr('(no description)')}</AppText>
                 <AppText variant="caption" numberOfLines={1}>
-                  {shortDate(r.date)} · {r.category?.name ?? 'Uncategorised'}
-                  {dup ? ' · already in BudT' : ''}
+                  {shortDate(r.date)} · {r.category ? tr(r.category.name) : tr('Uncategorised')}
+                  {dup ? tr(' · already in BudT') : ''}
                 </AppText>
               </View>
               <AppText weight="700" color={r.type === 'income' ? t.income : undefined}>
@@ -263,19 +263,17 @@ function Preview({
           );
         })}
         {withCategories.length > PREVIEW_LIMIT && (
-          <AppText variant="caption">…and {withCategories.length - PREVIEW_LIMIT} more, which will also be imported.</AppText>
+          <AppText variant="caption">{tr('…and {0} more, which will also be imported.', [withCategories.length - PREVIEW_LIMIT])}</AppText>
         )}
       </Card>
 
       <Button
-        title={busy ? 'Importing…' : `Import ${chosen.length} transaction${chosen.length === 1 ? '' : 's'}`}
+        title={busy ? tr('Importing…') : tr('Import {0} transaction{1}', [chosen.length, chosen.length === 1 ? '' : 's'])}
         icon="download-outline"
         onPress={run}
         disabled={busy || !chosen.length || !accountId}
       />
-      <AppText variant="caption" style={{ textAlign: 'center' }}>
-        You can change any category afterwards in Activity.
-      </AppText>
+      <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('You can change any category afterwards in Activity.')}</AppText>
     </>
   );
 }

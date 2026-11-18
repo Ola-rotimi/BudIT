@@ -3,12 +3,13 @@ import type { CountryPreset, PayKey } from '@/lib/countries';
 import type { PayBreakdown } from '@/lib/finance';
 import { parseNumber } from '@/lib/money';
 import { Field } from './ui';
+import { N_, tr } from '@/i18n';
 
 export const PAY_LABEL: Record<PayKey, string> = {
-  basic: 'Basic salary',
-  housing: 'Housing allowance',
-  transport: 'Transport allowance',
-  other: 'Other allowances',
+  basic: N_('Basic salary'),
+  housing: N_('Housing allowance'),
+  transport: N_('Transport allowance'),
+  other: N_('Other allowances'),
 };
 
 export type PayInputs = Record<PayKey, string>;
@@ -55,7 +56,7 @@ export function PayFields({
           {row.map((key) => (
             <Field
               key={key}
-              label={PAY_LABEL[key]}
+              label={tr(PAY_LABEL[key])}
               prefix={currency}
               value={values[key]}
               onChangeText={(v) => onChange(key, v)}

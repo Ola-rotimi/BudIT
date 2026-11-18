@@ -4,6 +4,7 @@ import { Card, Divider, HeaderButton, ListRow, Loading, Screen, Segmented } from
 import { listCategories } from '@/db/queries';
 import type { IconName, TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
+import { tr } from '@/i18n';
 
 export default function CategoriesScreen() {
   const [type, setType] = useState<TxType>('expense');
@@ -13,9 +14,9 @@ export default function CategoriesScreen() {
     <Screen>
       <Stack.Screen
         options={{
-          title: 'Categories',
+          title: tr('Categories'),
           headerRight: () => (
-            <HeaderButton icon="add" label="New category" onPress={() => router.push({ pathname: '/category', params: { type } })} />
+            <HeaderButton icon="add" label={tr('New category')} onPress={() => router.push({ pathname: '/category', params: { type } })} />
           ),
         }}
       />
@@ -23,8 +24,8 @@ export default function CategoriesScreen() {
         value={type}
         onChange={setType}
         options={[
-          { value: 'expense', label: 'Expense' },
-          { value: 'income', label: 'Income' },
+          { value: 'expense', label: tr('Expense') },
+          { value: 'income', label: tr('Income') },
         ]}
       />
       {!categories ? (

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { FREE_LIMITS, LIMIT_COPY, type LimitedFeature } from '@/lib/limits';
 import { BRAND, useTheme } from '@/lib/theme';
 import { AppText, Button, Card, Screen } from './ui';
+import { tr } from '@/i18n';
 
 /** Shown in place of a Pro-only result: explains what unlocking gives and opens the paywall. */
 export function ProLock({ title, message }: { title: string; message: string }) {
@@ -17,7 +18,7 @@ export function ProLock({ title, message }: { title: string; message: string }) 
         {title}
       </AppText>
       <AppText style={{ textAlign: 'center', color: t.muted }}>{message}</AppText>
-      <Button title="Unlock with BudT Pro" icon="sparkles" onPress={() => router.push('/paywall')} style={{ alignSelf: 'stretch' }} />
+      <Button title={tr('Unlock with BudT Pro')} icon="sparkles" onPress={() => router.push('/paywall')} style={{ alignSelf: 'stretch' }} />
     </Card>
   );
 }
@@ -38,10 +39,8 @@ export function LimitNote({ feature, used }: { feature: LimitedFeature; used: nu
   const limit = FREE_LIMITS[feature];
   return (
     <AppText variant="caption" style={{ textAlign: 'center' }}>
-      Free plan: {Math.min(used, limit)} of {limit} {LIMIT_COPY[feature].noun(limit)} used.{' '}
-      <AppText variant="caption" color={t.primary} weight="700" onPress={() => router.push('/paywall')}>
-        Get unlimited with Pro
-      </AppText>
+      {tr('Free plan: {0} of {1} {2} used.', [Math.min(used, limit), limit, LIMIT_COPY[feature].noun(limit)])}{' '}
+      <AppText variant="caption" color={t.primary} weight="700" onPress={() => router.push('/paywall')}>{tr('Get unlimited with Pro')}</AppText>
     </AppText>
   );
 }
@@ -50,9 +49,7 @@ export function LimitNote({ feature, used }: { feature: LimitedFeature; used: nu
 export function ProBadge() {
   return (
     <View style={[styles.pill, { backgroundColor: BRAND.amber }]}>
-      <AppText variant="caption" weight="800" color="#3B2502">
-        PRO
-      </AppText>
+      <AppText variant="caption" weight="800" color="#3B2502">{tr('PRO')}</AppText>
     </View>
   );
 }

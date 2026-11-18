@@ -11,6 +11,7 @@ import { Platform } from 'react-native';
 import { getSetting, listBills, setSetting } from '@/db/queries';
 import { addDays, fromISODate, todayISO } from './dates';
 import { formatMoney } from './money';
+import { tr } from '@/i18n';
 
 const CHANNEL = 'reminders';
 const PREFIX = 'budt-';
@@ -32,7 +33,7 @@ Notifications.setNotificationHandler({
 /** Asks for permission (once) and sets up the Android channel. Returns whether notifications are allowed. */
 export async function ensurePermission() {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Reminders', importance: AndroidImportance.DEFAULT });
+    await Notifications.setNotificationChannelAsync(CHANNEL, { name: tr('Reminders'), importance: AndroidImportance.DEFAULT });
   }
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
@@ -67,7 +68,7 @@ export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; 
     const [hour, minute] = settings.daily.split(':').map(Number);
     await Notifications.scheduleNotificationAsync({
       identifier: `${PREFIX}daily`,
-      content: { title: 'Anything to add to BudT?', body: 'Take 30 seconds to log today’s spending and stay on budget.' },
+      content: { title: tr('Anything to add to BudT?'), body: tr('Take 30 seconds to log today’s spending and stay on budget.') },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId },
     });
   }
@@ -81,18 +82,18 @@ export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; 
       const due = fromISODate(b.due_date);
       let when = addDays(due, -1);
       when.setHours(BILL_HOUR, 0, 0, 0);
-      let label = 'due tomorrow';
+      let label = tr('due tomorrow');
       if (when.getTime() <= now) {
         // Too late for the day-before reminder: remind on the day instead, if that's still ahead.
         when = new Date(due);
         when.setHours(BILL_HOUR, 0, 0, 0);
-        label = 'due today';
+        label = tr('due today');
         if (when.getTime() <= now) continue;
       }
       const amount = opts.showAmounts ? ` (${formatMoney(b.amount, opts.currency)})` : '';
       await Notifications.scheduleNotificationAsync({
         identifier: `${PREFIX}bill-${b.id}`,
-        content: { title: `${b.name} is ${label}`, body: `Your ${b.name} payment${amount} is ${label}. Mark it paid in BudT once it’s done.` },
+        content: { title: tr('{0} is {1}', [b.name, label]), body: tr('Your {0} payment{1} is {2}. Mark it paid in BudT once it’s done.', [b.name, amount, label]) },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, channelId },
       });
     }

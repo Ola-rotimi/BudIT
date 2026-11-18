@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CountryPreset } from '@/lib/countries';
 import { useTheme } from '@/lib/theme';
 import { AppText, Card } from './ui';
+import { tr } from '@/i18n';
 
 /** Shows which country's rules a calculator is using, with a button to switch. */
 export function CountryBanner({ preset, subtitle }: { preset?: CountryPreset; subtitle?: string }) {
@@ -12,17 +13,15 @@ export function CountryBanner({ preset, subtitle }: { preset?: CountryPreset; su
     <Pressable
       onPress={() => router.push({ pathname: '/country', params: { purpose: 'calc' } })}
       accessibilityRole="button"
-      accessibilityLabel={`Rules for ${preset?.name ?? 'custom rates'}. Change country`}
+      accessibilityLabel={tr('Rules for {0}. Change country', [preset?.name ?? tr('custom rates')])}
       style={({ pressed }) => [styles.banner, { backgroundColor: t.primarySoft, borderColor: t.primary }, pressed && { opacity: 0.7 }]}>
       <Text style={styles.flag}>{preset?.flag ?? '✏️'}</Text>
       <View style={{ flex: 1 }}>
-        <AppText weight="700">{preset ? preset.name : 'Custom rates'}</AppText>
-        <AppText variant="caption">{subtitle ?? (preset ? `${preset.currency}` : 'Enter your own bands and rates')}</AppText>
+        <AppText weight="700">{preset ? preset.name : tr('Custom rates')}</AppText>
+        <AppText variant="caption">{subtitle ?? (preset ? `${preset.currency}` : tr('Enter your own bands and rates'))}</AppText>
       </View>
       <View style={styles.change}>
-        <AppText variant="label" color={t.primary}>
-          Change
-        </AppText>
+        <AppText variant="label" color={t.primary}>{tr('Change')}</AppText>
         <Ionicons name="chevron-forward" size={16} color={t.primary} />
       </View>
     </Pressable>

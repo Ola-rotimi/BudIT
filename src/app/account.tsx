@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Switch, View } from 'react-native';
@@ -10,6 +10,8 @@ import { ACCOUNT_KINDS } from '@/lib/accounts';
 import { centsToInput, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 /** Create or edit a wallet. Editing the balance adjusts the opening balance so it matches reality. */
 export default function AccountScreen() {
@@ -40,25 +42,25 @@ export default function AccountScreen() {
   }, [db, id]);
 
   const save = async () => {
-    if (!name.trim()) return Alert.alert('Give the account a name');
+    if (!name.trim()) return Alert.alert(tr('Give the account a name'));
     const cents = balance.trim() ? parseAmount(balance) : 0;
-    if (cents === null) return Alert.alert('Check the balance');
+    if (cents === null) return Alert.alert(tr('Check the balance'));
     const signed = owed ? -cents : cents;
     // For an existing account the balance entered is "what it is now": shift the opening balance by the difference.
     const opening = original ? original.opening + (signed - original.balance) : signed;
     await saveAccount(db, { id, name: name.trim(), kind, icon: ACCOUNT_KINDS[kind].icon, color, opening_balance: opening });
-    router.back();
+    goBack();
   };
 
   const remove = () =>
-    Alert.alert('Remove account?', 'If it has transactions it will be archived, so your history and totals stay correct.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Remove account?'), tr('If it has transactions it will be archived, so your history and totals stay correct.'), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: tr('Remove'),
         style: 'destructive',
         onPress: async () => {
-          if (!(await removeAccount(db, id!))) return Alert.alert('Keep at least one account', 'BudT needs one active account for your transactions.');
-          router.back();
+          if (!(await removeAccount(db, id!))) return Alert.alert(tr('Keep at least one account'), tr('BudT needs one active account for your transactions.'));
+          goBack();
         },
       },
     ]);
@@ -67,41 +69,41 @@ export default function AccountScreen() {
     <Screen>
       <Stack.Screen
         options={{
-          title: id ? 'Edit account' : 'New account',
-          headerRight: id ? () => <HeaderDeleteButton label="Remove account" icon="archive-outline" onPress={remove} /> : undefined,
+          title: id ? tr('Edit account') : tr('New account'),
+          headerRight: id ? () => <HeaderDeleteButton label={tr('Remove account')} icon="archive-outline" onPress={remove} /> : undefined,
         }}
       />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Type</AppText>
+        <AppText variant="label">{tr('Type')}</AppText>
         <Segmented<AccountKind>
           value={kind}
           onChange={setKind}
-          options={(Object.keys(ACCOUNT_KINDS) as AccountKind[]).map((k) => ({ value: k, label: ACCOUNT_KINDS[k].label }))}
+          options={(Object.keys(ACCOUNT_KINDS) as AccountKind[]).map((k) => ({ value: k, label: tr(ACCOUNT_KINDS[k].label) }))}
         />
-        <AppText variant="caption">{ACCOUNT_KINDS[kind].example}</AppText>
+        <AppText variant="caption">{tr(ACCOUNT_KINDS[kind].example)}</AppText>
       </View>
-      <Field label="Name" value={name} onChangeText={setName} placeholder={kind === 'mobile' ? 'e.g. M-Pesa' : kind === 'cash' ? 'e.g. Wallet' : 'e.g. GTBank salary'} />
+      <Field label={tr('Name')} value={name} onChangeText={setName} placeholder={kind === 'mobile' ? tr('e.g. M-Pesa') : kind === 'cash' ? tr('e.g. Wallet') : tr('e.g. GTBank salary')} />
       <Field
-        label={id ? 'Balance now' : 'Current balance'}
+        label={id ? tr('Balance now') : tr('Current balance')}
         prefix={currency}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
         placeholder="0"
-        hint={id ? 'Change this to match your bank or wallet; BudT adjusts the starting balance.' : 'What’s in it today. Optional.'}
+        hint={id ? tr('Change this to match your bank or wallet; BudT adjusts the starting balance.') : tr('What’s in it today. Optional.')}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ flex: 1 }}>
-          <AppText>This balance is owed</AppText>
-          <AppText variant="caption">For a credit card, overdraft or loan account.</AppText>
+          <AppText>{tr('This balance is owed')}</AppText>
+          <AppText variant="caption">{tr('For a credit card, overdraft or loan account.')}</AppText>
         </View>
         <Switch value={owed} onValueChange={setOwed} trackColor={{ true: t.primary }} />
       </View>
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Colour</AppText>
+        <AppText variant="label">{tr('Colour')}</AppText>
         <ColorPicker value={color} onChange={setColor} />
       </View>
-      <Button title={id ? 'Save changes' : 'Add account'} icon="checkmark" onPress={save} />
+      <Button title={id ? tr('Save changes') : tr('Add account')} icon="checkmark" onPress={save} />
     </Screen>
   );
 }

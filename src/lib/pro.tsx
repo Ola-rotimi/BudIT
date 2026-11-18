@@ -10,6 +10,7 @@ import Purchases, {
   type PurchasesError,
   type PurchasesPackage,
 } from 'react-native-purchases';
+import { tr } from '@/i18n';
 
 /** Entitlement identifier configured in the RevenueCat dashboard. */
 export const PRO_ENTITLEMENT = 'pro';
@@ -122,12 +123,12 @@ export async function loadPlans(): Promise<PlanOption[]> {
     plans.push({
       pkg: annual,
       kind: 'annual',
-      title: 'Yearly',
-      price: `${annual.product.priceString} / year`,
-      note: saving >= 0.05 ? `Save ${Math.round(saving * 100)}%` : undefined,
+      title: tr('Yearly'),
+      price: tr('{0} / year', [annual.product.priceString]),
+      note: saving >= 0.05 ? tr('Save {0}%', [Math.round(saving * 100)]) : undefined,
     });
   }
-  if (monthly) plans.push({ pkg: monthly, kind: 'monthly', title: 'Monthly', price: `${monthly.product.priceString} / month` });
-  if (lifetime) plans.push({ pkg: lifetime, kind: 'lifetime', title: 'Lifetime', price: `${lifetime.product.priceString} once`, note: 'Pay once' });
+  if (monthly) plans.push({ pkg: monthly, kind: 'monthly', title: tr('Monthly'), price: tr('{0} / month', [monthly.product.priceString]) });
+  if (lifetime) plans.push({ pkg: lifetime, kind: 'lifetime', title: tr('Lifetime'), price: `${lifetime.product.priceString} once`, note: tr('Pay once') });
   return plans;
 }

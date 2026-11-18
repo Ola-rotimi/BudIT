@@ -6,7 +6,7 @@
  * Random bytes come from the platform's secure generator via expo-crypto.
  */
 import { gcm } from '@noble/ciphers/aes.js';
-import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from '@noble/ciphers/utils.js';
+import { bytesToHex, hexToBytes } from '@noble/ciphers/utils.js';
 import { pbkdf2Async } from '@noble/hashes/pbkdf2.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { getRandomBytes } from 'expo-crypto';
@@ -15,6 +15,52 @@ import { getRandomBytes } from 'expo-crypto';
 const BACKUP_ITERATIONS = 150_000;
 /** PINs are only ever checked on-device against a hardware-protected hash, so fewer rounds suffice. */
 const PIN_ITERATIONS = 5_000;
+
+/**
+ * UTF-8 conversion without TextEncoder/TextDecoder, which not every JavaScript engine provides.
+ * Handles the full Unicode range (surrogate pairs included).
+ */
+function utf8ToBytes(text: string): Uint8Array {
+  const out: number[] = [];
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)!;
+    if (cp < 0x80) out.push(cp);
+    else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 63));
+    else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+    else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 63), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+  }
+  return Uint8Array.from(out);
+}
+
+function bytesToUtf8(bytes: Uint8Array): string {
+  const parts: string[] = [];
+  let points: number[] = [];
+  for (let i = 0; i < bytes.length; ) {
+    const b = bytes[i];
+    let cp: number;
+    if (b < 0x80) {
+      cp = b;
+      i += 1;
+    } else if (b < 0xe0) {
+      cp = ((b & 31) << 6) | (bytes[i + 1] & 63);
+      i += 2;
+    } else if (b < 0xf0) {
+      cp = ((b & 15) << 12) | ((bytes[i + 1] & 63) << 6) | (bytes[i + 2] & 63);
+      i += 3;
+    } else {
+      cp = ((b & 7) << 18) | ((bytes[i + 1] & 63) << 12) | ((bytes[i + 2] & 63) << 6) | (bytes[i + 3] & 63);
+      i += 4;
+    }
+    points.push(cp);
+    // Convert in chunks: fast for large backups without exceeding argument limits.
+    if (points.length === 4096) {
+      parts.push(String.fromCodePoint(...points));
+      points = [];
+    }
+  }
+  parts.push(String.fromCodePoint(...points));
+  return parts.join('');
+}
 
 export type EncryptedPayload = {
   kdf: { name: 'PBKDF2-SHA256'; iterations: number; salt: string };

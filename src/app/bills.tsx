@@ -9,8 +9,9 @@ import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { LimitNote } from '@/components/ProLock';
 import { useFreeLimit } from '@/lib/limits';
+import { N_, tr } from '@/i18n';
 
-const FREQUENCY_LABEL: Record<Frequency, string> = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly', once: 'One-off' };
+const FREQUENCY_LABEL: Record<Frequency, string> = { weekly: N_('Weekly'), monthly: N_('Monthly'), yearly: N_('Yearly'), once: N_('One-off') };
 /** Rough monthly equivalent of each frequency, for the monthly commitment total. */
 const PER_MONTH: Record<Frequency, number> = { weekly: 52 / 12, monthly: 1, yearly: 1 / 12, once: 0 };
 
@@ -29,27 +30,27 @@ export default function BillsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Bills & subscriptions', headerRight: () => <HeaderButton icon="add" label="New bill" onPress={newBill} /> }} />
+      <Stack.Screen options={{ title: tr('Bills & subscriptions'), headerRight: () => <HeaderButton icon="add" label={tr('New bill')} onPress={newBill} /> }} />
       {bills.length === 0 ? (
         <Card>
           <EmptyState
             icon="calendar-outline"
-            title="No bills yet"
-            message="Add rent, utilities and subscriptions to see what’s due and record payments in one tap."
-            action={{ label: 'Add a bill', onPress: newBill }}
+            title={tr('No bills yet')}
+            message={tr('Add rent, utilities and subscriptions to see what’s due and record payments in one tap.')}
+            action={{ label: tr('Add a bill'), onPress: newBill }}
           />
         </Card>
       ) : (
         <>
           <View style={styles.summary}>
             <Card style={{ flex: 1, gap: 4 }}>
-              <AppText variant="caption">Due in 30 days</AppText>
+              <AppText variant="caption">{tr('Due in 30 days')}</AppText>
               <AppText variant="heading" numberOfLines={1} adjustsFontSizeToFit>
                 {money(next30)}
               </AppText>
             </Card>
             <Card style={{ flex: 1, gap: 4 }}>
-              <AppText variant="caption">Recurring per month</AppText>
+              <AppText variant="caption">{tr('Recurring per month')}</AppText>
               <AppText variant="heading" numberOfLines={1} adjustsFontSizeToFit>
                 {money(Math.round(monthly))}
               </AppText>
@@ -71,13 +72,13 @@ function BillCard({ bill: b, today }: { bill: BillRow; today: string }) {
   const { money } = useMoney();
   const due = daysBetween(today, b.due_date);
   const status =
-    due < 0 ? `Overdue by ${-due} day${due === -1 ? '' : 's'}` : due === 0 ? 'Due today' : due === 1 ? 'Due tomorrow' : `Due in ${due} days`;
+    due < 0 ? tr('Overdue by {0} day{1}', [-due, due === -1 ? '' : 's']) : due === 0 ? tr('Due today') : due === 1 ? tr('Due tomorrow') : tr('Due in {0} days', [due]);
   const statusColor = due < 0 ? t.expense : due <= 3 ? t.warning : t.muted;
 
   const pay = () =>
-    Alert.alert('Mark as paid?', `Records a ${money(b.amount)} expense for “${b.name}” today${b.frequency === 'once' ? '.' : ' and moves it to the next due date.'}`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Mark paid', onPress: () => markBillPaid(db, b) },
+    Alert.alert(tr('Mark as paid?'), tr('Records a {0} expense for “{1}” today{2}', [money(b.amount), b.name, b.frequency === 'once' ? '.' : tr(' and moves it to the next due date.')]), [
+      { text: tr('Cancel'), style: 'cancel' },
+      { text: tr('Mark paid'), onPress: () => markBillPaid(db, b) },
     ]);
 
   return (
@@ -87,7 +88,7 @@ function BillCard({ bill: b, today }: { bill: BillRow; today: string }) {
         <View style={{ flex: 1 }}>
           <AppText weight="700">{b.name}</AppText>
           <AppText variant="caption">
-            {FREQUENCY_LABEL[b.frequency]} · {shortDate(b.due_date)}
+            {tr(FREQUENCY_LABEL[b.frequency])} · {shortDate(b.due_date)}
           </AppText>
         </View>
         <AppText weight="700">{money(b.amount)}</AppText>
@@ -96,7 +97,7 @@ function BillCard({ bill: b, today }: { bill: BillRow; today: string }) {
         <AppText variant="label" color={statusColor} style={{ flex: 1 }}>
           {status}
         </AppText>
-        <Button title="Mark paid" icon="checkmark-circle-outline" variant="secondary" onPress={pay} style={{ minHeight: 38 }} />
+        <Button title={tr('Mark paid')} icon="checkmark-circle-outline" variant="secondary" onPress={pay} style={{ minHeight: 38 }} />
       </View>
     </Card>
   );

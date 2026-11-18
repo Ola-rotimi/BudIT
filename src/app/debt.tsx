@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -6,6 +6,8 @@ import { Button, Field, HeaderDeleteButton, Screen } from '@/components/ui';
 import { deleteDebt, getDebt, saveDebt } from '@/db/queries';
 import { centsToInput, parseAmount, parseNumber } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 export default function DebtScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -32,59 +34,59 @@ export default function DebtScreen() {
     const balanceCents = parseAmount(balance);
     const minCents = minimum.trim() ? parseAmount(minimum) : 0;
     const rate = parseNumber(apr, -1);
-    if (!name.trim()) return Alert.alert('Give the debt a name');
-    if (!balanceCents) return Alert.alert('Enter what you still owe');
-    if (rate < 0 || rate > 1000) return Alert.alert('Check the interest rate', 'Enter the yearly rate as a percentage, e.g. 24.');
-    if (minCents === null) return Alert.alert('Check the minimum payment');
+    if (!name.trim()) return Alert.alert(tr('Give the debt a name'));
+    if (!balanceCents) return Alert.alert(tr('Enter what you still owe'));
+    if (rate < 0 || rate > 1000) return Alert.alert(tr('Check the interest rate'), tr('Enter the yearly rate as a percentage, e.g. 24.'));
+    if (minCents === null) return Alert.alert(tr('Check the minimum payment'));
     await saveDebt(db, { id, name: name.trim(), balance: balanceCents, apr: rate, min_payment: minCents });
-    router.back();
+    goBack();
   };
 
   const remove = () =>
-    Alert.alert('Delete this debt?', `“${name}” will be removed from your plan.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Delete this debt?'), tr('“{0}” will be removed from your plan.', [name]), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: tr('Delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteDebt(db, id!);
-          router.back();
+          goBack();
         },
       },
     ]);
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: id ? 'Edit debt' : 'Add debt', headerRight: id ? () => <HeaderDeleteButton label="Delete debt" onPress={remove} /> : undefined }} />
-      <Field label="Name" value={name} onChangeText={setName} placeholder="e.g. Credit card, FairMoney loan" />
-      <Field label="Amount owed now" prefix={currency} value={balance} onChangeText={setBalance} keyboardType="decimal-pad" placeholder="0" />
+      <Stack.Screen options={{ title: id ? tr('Edit debt') : tr('Add debt'), headerRight: id ? () => <HeaderDeleteButton label={tr('Delete debt')} onPress={remove} /> : undefined }} />
+      <Field label={tr('Name')} value={name} onChangeText={setName} placeholder={tr('e.g. Credit card, FairMoney loan')} />
+      <Field label={tr('Amount owed now')} prefix={currency} value={balance} onChangeText={setBalance} keyboardType="decimal-pad" placeholder="0" />
       <Field
-        label="Interest rate (% a year)"
+        label={tr('Interest rate (% a year)')}
         value={apr}
         onChangeText={setApr}
         keyboardType="decimal-pad"
         placeholder="e.g. 24"
-        hint="Use the yearly rate. For a monthly rate (common with app loans), multiply by 12."
+        hint={tr('Use the yearly rate. For a monthly rate (common with app loans), multiply by 12.')}
       />
       <Field
-        label="Minimum monthly payment"
+        label={tr('Minimum monthly payment')}
         prefix={currency}
         value={minimum}
         onChangeText={setMinimum}
         keyboardType="decimal-pad"
         placeholder="0"
-        hint="What you must pay each month to stay on track."
+        hint={tr('What you must pay each month to stay on track.')}
       />
-      <Button title={id ? 'Save changes' : 'Add debt'} icon="checkmark" onPress={save} />
+      <Button title={id ? tr('Save changes') : tr('Add debt')} icon="checkmark" onPress={save} />
       {id ? (
         <Button
-          title="Paid off"
+          title={tr('Paid off')}
           icon="trophy-outline"
           variant="secondary"
           onPress={async () => {
             await saveDebt(db, { id, name: name.trim(), balance: 0, apr: parseNumber(apr), min_payment: parseAmount(minimum) ?? 0 });
-            Alert.alert('Well done! 🎉', `${name} is paid off.`);
-            router.back();
+            Alert.alert(tr('Well done! 🎉'), tr('{0} is paid off.', [name]));
+            goBack();
           }}
         />
       ) : null}

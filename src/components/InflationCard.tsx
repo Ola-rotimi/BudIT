@@ -9,6 +9,7 @@ import { useMoney, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { ProLock } from './ProLock';
 import { AppText, Card, StatLine } from './ui';
+import { tr } from '@/i18n';
 
 /** Ignore categories too small to say anything meaningful about (in cents). */
 const MIN_BASE = 1000_00;
@@ -37,7 +38,7 @@ export function InflationCard({ month }: { month: string }) {
   });
 
   if (!isPro) {
-    return <ProLock title="Is inflation eating your budget?" message="BudT Pro compares your spending with last year and with inflation, and shows which costs are rising fastest." />;
+    return <ProLock title={tr('Is inflation eating your budget?')} message={tr('BudT Pro compares your spending with last year and with inflation, and shows which costs are rising fastest.')} />;
   }
   if (!data || !sum(data.now)) return null;
 
@@ -66,39 +67,31 @@ export function InflationCard({ month }: { month: string }) {
     .sort((a, b) => b.change - a.change)
     .slice(0, 3);
 
-  const versus = yearOnYear ? monthLabel(shiftMonth(target, -12)) : 'the 3 months before';
+  const versus = yearOnYear ? monthLabel(shiftMonth(target, -12)) : tr('the 3 months before');
 
   return (
     <Card>
-      <AppText variant="heading">Inflation check</AppText>
-      <AppText variant="caption">
-        {monthLabel(target)} compared with {versus}.
-      </AppText>
-      <StatLine label="Your spending" value={`${change >= 0 ? '+' : ''}${formatPercent(change, 0)}`} color={change > 0 ? t.expense : t.income} bold />
+      <AppText variant="heading">{tr('Inflation check')}</AppText>
+      <AppText variant="caption">{tr('{0} compared with {1}.', [monthLabel(target), versus])}</AppText>
+      <StatLine label={tr('Your spending')} value={`${change >= 0 ? '+' : ''}${formatPercent(change, 0)}`} color={change > 0 ? t.expense : t.income} bold />
       {inflation !== null && preset && (
         <>
-          <StatLine label={`Prices in ${preset.name} (about)`} value={`+${formatPercent(inflation, yearOnYear ? 0 : 1)}`} />
+          <StatLine label={tr('Prices in {0} (about)', [preset.name])} value={`+${formatPercent(inflation, yearOnYear ? 0 : 1)}`} />
           <AppText variant="caption" color={real !== null && real > 0.02 ? t.warning : undefined}>
-            {real === null
-              ? ''
-              : Math.abs(real) <= 0.02
-                ? 'Your spending is moving in line with prices.'
-                : real > 0
-                  ? `After inflation you’re spending about ${formatPercent(real, 0)} more in real terms.`
-                  : `After inflation you’re spending about ${formatPercent(-real, 0)} less in real terms. Nice work.`}
+            {real === null ? '' : Math.abs(real) <= 0.02 ? tr('Your spending is moving in line with prices.') : real > 0 ? tr('After inflation you’re spending about {0} more in real terms.', [formatPercent(real, 0)]) : tr('After inflation you’re spending about {0} less in real terms. Nice work.', [formatPercent(-real, 0)])}
           </AppText>
         </>
       )}
       {risers.length > 0 && (
         <View style={{ gap: 4 }}>
-          <AppText variant="label">Rising fastest</AppText>
+          <AppText variant="label">{tr('Rising fastest')}</AppText>
           {risers.map((r) => (
-            <StatLine key={r.id} label={r.name} value={`+${formatPercent(r.change, 0)} · ${money(r.total)}`} color={t.expense} />
+            <StatLine key={r.id} label={tr(r.name)} value={`+${formatPercent(r.change, 0)} · ${money(r.total)}`} color={t.expense} />
           ))}
         </View>
       )}
       {inflation !== null && (
-        <AppText variant="caption">Inflation figure is BudT’s planning estimate for {preset?.name}; check your statistics office for the official rate.</AppText>
+        <AppText variant="caption">{tr('Inflation figure is BudT’s planning estimate for {0}; check your statistics office for the official rate.', [preset?.name])}</AppText>
       )}
     </Card>
   );

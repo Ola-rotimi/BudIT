@@ -6,6 +6,7 @@ import type { IconName, TxType } from '@/db/types';
 import { useQuery } from '@/hooks/useQuery';
 import { SWATCHES, useTheme } from '@/lib/theme';
 import { AppText } from './ui';
+import { tr } from '@/i18n';
 
 export const ICON_CHOICES: IconName[] = [
   'restaurant', 'fast-food', 'cafe', 'pizza', 'wine', 'cart', 'basket', 'bag-handle', 'shirt', 'home',
@@ -35,7 +36,7 @@ export function CategoryPicker({ type, value, onChange }: { type: TxType; value:
               { borderColor: active ? c.color : t.border, backgroundColor: active ? `${c.color}22` : t.card },
             ]}>
             <Ionicons name={c.icon} size={16} color={c.color} />
-            <Text style={[styles.chipText, { color: t.text }]}>{c.name}</Text>
+            <Text style={[styles.chipText, { color: t.text }]}>{tr(c.name)}</Text>
           </Pressable>
         );
       })}
@@ -43,7 +44,7 @@ export function CategoryPicker({ type, value, onChange }: { type: TxType; value:
         onPress={() => router.push({ pathname: '/category', params: { type } })}
         style={[styles.chip, { borderColor: t.border, borderStyle: 'dashed' }]}>
         <Ionicons name="add" size={16} color={t.primary} />
-        <Text style={[styles.chipText, { color: t.primary }]}>New</Text>
+        <Text style={[styles.chipText, { color: t.primary }]}>{tr('New')}</Text>
       </Pressable>
     </View>
   );
@@ -74,7 +75,7 @@ export function AccountPicker({ value, onChange, exclude }: { value: number | nu
         })}
       <Pressable onPress={() => router.push('/account')} style={[styles.chip, { borderColor: t.border, borderStyle: 'dashed' }]}>
         <Ionicons name="add" size={16} color={t.primary} />
-        <Text style={[styles.chipText, { color: t.primary }]}>New</Text>
+        <Text style={[styles.chipText, { color: t.primary }]}>{tr('New')}</Text>
       </Pressable>
     </View>
   );
@@ -84,7 +85,7 @@ export function IconPicker({ value, color, onChange }: { value: IconName; color:
   const t = useTheme();
   return (
     <View style={{ gap: 6 }}>
-      <AppText variant="label">Icon</AppText>
+      <AppText variant="label">{tr('Icon')}</AppText>
       <View style={styles.wrap}>
         {ICON_CHOICES.map((icon) => {
           const active = icon === value;
@@ -108,7 +109,7 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (col
   const t = useTheme();
   return (
     <View style={{ gap: 6 }}>
-      <AppText variant="label">Colour</AppText>
+      <AppText variant="label">{tr('Colour')}</AppText>
       <View style={styles.wrap}>
         {SWATCHES.map((c) => (
           <Pressable

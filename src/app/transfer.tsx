@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -11,6 +11,8 @@ import { todayISO } from '@/lib/dates';
 import { centsToInput, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 /** Moves money between two of the user's own accounts. Not income or spending, except any fee. */
 export default function TransferScreen() {
@@ -50,23 +52,23 @@ export default function TransferScreen() {
   const save = async () => {
     const cents = parseAmount(amount);
     const feeCents = fee.trim() ? parseAmount(fee) : 0;
-    if (!from || !to) return Alert.alert('Choose both accounts', 'Add a second account first if you only have one.');
-    if (from === to) return Alert.alert('Choose two different accounts');
-    if (!cents) return Alert.alert('Enter an amount', 'The amount must be greater than zero.');
-    if (feeCents === null) return Alert.alert('Check the fee');
+    if (!from || !to) return Alert.alert(tr('Choose both accounts'), tr('Add a second account first if you only have one.'));
+    if (from === to) return Alert.alert(tr('Choose two different accounts'));
+    if (!cents) return Alert.alert(tr('Enter an amount'), tr('The amount must be greater than zero.'));
+    if (feeCents === null) return Alert.alert(tr('Check the fee'));
     await saveTransfer(db, { id, from_account: from, to_account: to, amount: cents, fee: feeCents, date, note: note.trim() });
-    router.back();
+    goBack();
   };
 
   const remove = () =>
-    Alert.alert('Delete transfer?', 'Both account balances go back to how they were, and any fee is removed.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Delete transfer?'), tr('Both account balances go back to how they were, and any fee is removed.'), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: tr('Delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteTransfer(db, id!);
-          router.back();
+          goBack();
         },
       },
     ]);
@@ -74,10 +76,10 @@ export default function TransferScreen() {
   return (
     <Screen>
       <Stack.Screen
-        options={{ title: id ? 'Edit transfer' : 'Transfer', headerRight: id ? () => <HeaderDeleteButton label="Delete transfer" onPress={remove} /> : undefined }}
+        options={{ title: id ? tr('Edit transfer') : tr('Transfer'), headerRight: id ? () => <HeaderDeleteButton label={tr('Delete transfer')} onPress={remove} /> : undefined }}
       />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">From</AppText>
+        <AppText variant="label">{tr('From')}</AppText>
         <AccountPicker
           value={from}
           onChange={(next) => {
@@ -88,22 +90,22 @@ export default function TransferScreen() {
       </View>
       <Ionicons name="arrow-down" size={22} color={t.muted} style={{ alignSelf: 'center' }} />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">To</AppText>
+        <AppText variant="label">{tr('To')}</AppText>
         <AccountPicker value={to} onChange={setTo} exclude={from} />
       </View>
-      <Field label="Amount" prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" />
+      <Field label={tr('Amount')} prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" />
       <Field
-        label="Fee (optional)"
+        label={tr('Fee (optional)')}
         prefix={currency}
         value={fee}
         onChangeText={setFee}
         keyboardType="decimal-pad"
         placeholder="0"
-        hint="Bank or mobile-money charges. Recorded as spending under Fees & Charges."
+        hint={tr('Bank or mobile-money charges. Recorded as spending under Fees & Charges.')}
       />
-      <DateField label="Date" value={date} onChange={setDate} />
-      <Field label="Note" value={note} onChangeText={setNote} placeholder="e.g. Top up M-Pesa (optional)" />
-      <Button title={id ? 'Save changes' : 'Transfer'} icon="swap-horizontal" onPress={save} />
+      <DateField label={tr('Date')} value={date} onChange={setDate} />
+      <Field label={tr('Note')} value={note} onChangeText={setNote} placeholder={tr('e.g. Top up M-Pesa (optional)')} />
+      <Button title={id ? tr('Save changes') : tr('Transfer')} icon="swap-horizontal" onPress={save} />
     </Screen>
   );
 }

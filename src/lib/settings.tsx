@@ -2,6 +2,7 @@ import { useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Appearance } from 'react-native';
 import { getSetting, setSetting } from '@/db/queries';
+import { resolveLanguage, setLanguage as applyLanguage, type LanguagePreference } from '@/i18n';
 import { setPeriodStartDay } from './dates';
 import { CUSTOM_COUNTRY, getCountry } from './countries';
 import { formatMajor, formatMoney } from './money';
@@ -30,6 +31,9 @@ type Settings = {
   /** Day of the month budget periods start (1 = calendar months; e.g. 25 for a payday on the 25th). */
   monthStartDay: number;
   setMonthStartDay: (day: number) => Promise<void>;
+  /** 'system' follows the phone's language (when BudT has it). */
+  language: LanguagePreference;
+  setLanguage: (lang: LanguagePreference) => Promise<void>;
   /** Re-reads every setting from the database, e.g. after restoring a backup. */
   reload: () => Promise<void>;
 };
@@ -42,6 +46,7 @@ type Stored = {
   onboarded: string | null;
   hideAmounts: string | null;
   monthStartDay: string | null;
+  language: string | null;
 };
 
 const SettingsContext = createContext<Settings | null>(null);
@@ -52,13 +57,16 @@ function applyTheme(theme: string | null) {
 }
 
 async function readAll(db: SQLiteDatabase): Promise<Stored> {
-  const [currency, country, calcCountry, theme, onboarded, hideAmounts, monthStartDay] = await Promise.all(
-    ['currency', 'country', 'calcCountry', 'theme', 'onboarded', 'hideAmounts', 'monthStartDay'].map((key) => getSetting(db, key)),
+  const [currency, country, calcCountry, theme, onboarded, hideAmounts, monthStartDay, language] = await Promise.all(
+    ['currency', 'country', 'calcCountry', 'theme', 'onboarded', 'hideAmounts', 'monthStartDay', 'language'].map((key) => getSetting(db, key)),
   );
+  applyLanguage(resolveLanguage(language));
   applyTheme(theme);
   // Applied before anything renders so every date range uses the same budget periods.
   setPeriodStartDay(Number(monthStartDay) || 1);
-  return { currency, country, calcCountry, theme, onboarded, hideAmounts, monthStartDay };
+  // Installs from before the walkthrough existed count as onboarded if a country was already set.
+  // Decided once here at load, so picking a country during the walkthrough doesn't end it early.
+  return { currency, country, calcCountry, theme, onboarded: onboarded ?? (country ? '1' : '0'), hideAmounts, monthStartDay, language };
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -97,8 +105,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         applyTheme(theme);
         return update({ theme });
       },
-      // Installs from before the walkthrough existed count as onboarded once a country is set.
-      onboarded: stored.onboarded ? stored.onboarded === '1' : !!stored.country,
+      onboarded: stored.onboarded === '1',
       setOnboarded: (done) => update({ onboarded: done ? '1' : '0' }),
       hideAmounts: stored.hideAmounts === '1',
       setHideAmounts: (hide) => update({ hideAmounts: hide ? '1' : '0' }),
@@ -107,6 +114,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setPeriodStartDay(day);
         // Saving notifies every query, so lists and budgets reload with the new periods.
         return update({ monthStartDay: String(day) });
+      },
+      language: (stored.language as LanguagePreference | null) ?? 'system',
+      setLanguage: (lang) => {
+        applyLanguage(resolveLanguage(lang));
+        return update({ language: lang });
       },
       reload: () => readAll(db).then(setStored),
     };

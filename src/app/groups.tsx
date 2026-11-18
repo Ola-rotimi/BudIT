@@ -9,6 +9,7 @@ import { useFreeLimit } from '@/lib/limits';
 import { currentCycle, cycleDate, payoutAmount } from '@/lib/savingsGroups';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 /** Ajo, esusu, susu, chama, stokvel: rotating savings groups the user belongs to. */
 export default function GroupsScreen() {
@@ -23,14 +24,14 @@ export default function GroupsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Savings groups', headerRight: () => <HeaderButton icon="add" label="New group" onPress={addGroup} /> }} />
+      <Stack.Screen options={{ title: tr('Savings groups'), headerRight: () => <HeaderButton icon="add" label={tr('New group')} onPress={addGroup} /> }} />
       {groups.length === 0 ? (
         <Card>
           <EmptyState
             icon="people-outline"
-            title="No savings groups yet"
-            message="Add your ajo, esusu, susu, chama or stokvel. BudT tracks your contributions, your turn and what you’re owed or still owe."
-            action={{ label: 'Add a group', onPress: addGroup }}
+            title={tr('No savings groups yet')}
+            message={tr('Add your ajo, esusu, susu, chama or stokvel. BudT tracks your contributions, your turn and what you’re owed or still owe.')}
+            action={{ label: tr('Add a group'), onPress: addGroup }}
           />
         </Card>
       ) : (
@@ -44,20 +45,13 @@ export default function GroupsScreen() {
                 <IconBadge icon="people" color="#D97706" />
                 <View style={{ flex: 1 }}>
                   <AppText weight="700">{g.name}</AppText>
-                  <AppText variant="caption">
-                    {money(g.contribution)} {g.frequency === 'weekly' ? 'a week' : 'a month'} · {g.members} members
-                  </AppText>
+                  <AppText variant="caption">{tr('{0} {1} · {2} members', [money(g.contribution), g.frequency === 'weekly' ? tr('a week') : tr('a month'), g.members])}</AppText>
                 </View>
               </View>
               <ProgressBar progress={g.paid_cycles / g.members} color="#D97706" />
-              <AppText variant="caption">
-                Paid {g.paid_cycles} of {g.members} · cycle {cycle} now ·{' '}
-                {collected ? `you collected ${money(g.received)}` : `you collect ${money(payoutAmount(g))} on ${shortDate(turnDate)}`}
-              </AppText>
+              <AppText variant="caption">{tr('Paid {0} of {1} · cycle {2} now · {3}', [g.paid_cycles, g.members, cycle, collected ? tr('you collected {0}', [money(g.received)]) : tr('you collect {0} on {1}', [money(payoutAmount(g)), shortDate(turnDate)])])}</AppText>
               {g.pot_balance < 0 && (
-                <AppText variant="caption" color={t.warning}>
-                  You’ve collected early: {money(-g.pot_balance)} still to pay in.
-                </AppText>
+                <AppText variant="caption" color={t.warning}>{tr('You’ve collected early: {0} still to pay in.', [money(-g.pot_balance)])}</AppText>
               )}
             </Card>
           );

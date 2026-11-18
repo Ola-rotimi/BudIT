@@ -13,6 +13,7 @@ import { setSetting } from '@/db/queries';
 import { exportSnapshot, SnapshotError, validateSnapshot, type Snapshot } from '@/db/snapshot';
 import { decryptText, encryptText, type EncryptedPayload } from './crypto';
 import { todayISO } from './dates';
+import { tr } from '@/i18n';
 
 export { importSnapshot as restoreBackup, SnapshotError as BackupError } from '@/db/snapshot';
 export type BackupFile = Snapshot;
@@ -41,8 +42,8 @@ export async function createBackupFile(db: SQLiteDatabase, password?: string) {
 
 /** Opens the share sheet so the user can save the backup, and records when they last did. */
 export async function shareBackupFile(db: SQLiteDatabase, file: File) {
-  if (!(await Sharing.isAvailableAsync())) throw new SnapshotError('Sharing isn’t available on this device.');
-  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: 'Save your BudT backup' });
+  if (!(await Sharing.isAvailableAsync())) throw new SnapshotError(tr('Sharing isn’t available on this device.'));
+  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: tr('Save your BudT backup') });
   await setSetting(db, LAST_BACKUP_KEY, new Date().toISOString());
 }
 
@@ -70,7 +71,7 @@ export async function pickBackup(): Promise<PickedBackup | null> {
   try {
     parsed = JSON.parse(await file.text());
   } catch {
-    throw new SnapshotError('That file isn’t a BudT backup.');
+    throw new SnapshotError(tr('That file isn’t a BudT backup.'));
   } finally {
     if (file.exists) file.delete();
   }

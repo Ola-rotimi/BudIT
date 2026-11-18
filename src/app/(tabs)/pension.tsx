@@ -12,6 +12,7 @@ import { formatMajor, parseNumber } from '@/lib/money';
 import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 type Inputs = Record<keyof PensionInput, string>;
 
@@ -85,104 +86,97 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
       <CountryBanner preset={preset} subtitle={preset ? `${preset.pension.scheme} · ${preset.currency}` : undefined} />
 
       <Card>
-        <AppText variant="heading">About you</AppText>
+        <AppText variant="heading">{tr('About you')}</AppText>
         <View style={styles.pair}>
-          {field('currentAge', 'Current age')}
-          {field('retireAge', 'Retirement age')}
+          {field('currentAge', tr('Current age'))}
+          {field('retireAge', tr('Retirement age'))}
         </View>
         {pensionBase ? (
-          field('currentPot', 'Saved so far', { money: true })
+          field('currentPot', tr('Saved so far'), { money: true })
         ) : (
           <View style={styles.pair}>
-            {field('currentPot', 'Saved so far', { money: true })}
-            {field('salary', 'Annual salary', { money: true, hint: `${major(num.salary / 12)} a month` })}
+            {field('currentPot', tr('Saved so far'), { money: true })}
+            {field('salary', tr('Annual salary'), { money: true, hint: tr('{0} a month', [major(num.salary / 12)]) })}
           </View>
         )}
       </Card>
 
       {pensionBase && (
         <Card>
-          <AppText variant="heading">Monthly pay</AppText>
-          <AppText variant="caption">
-            Contributions are worked out on your {PAY_BASE_LABEL[pensionBase]}, as on your payslip. Other allowances don’t count.
-          </AppText>
+          <AppText variant="heading">{tr('Monthly pay')}</AppText>
+          <AppText variant="caption">{tr('Contributions are worked out on your {0}, as on your payslip. Other allowances don’t count.', [tr(PAY_BASE_LABEL[pensionBase])])}</AppText>
           <PayFields
             fields={PENSIONABLE[pensionBase]}
             values={pay}
             onChange={(k, v) => setPay((s) => ({ ...s, [k]: v }))}
             currency={currency}
           />
-          <StatLine label="Pensionable pay per month" value={major(num.salary / 12)} bold />
-          <AppText variant="caption">
-            You pay {major((num.salary / 12) * (num.employeePct / 100))} and your employer pays{' '}
-            {major((num.salary / 12) * (num.employerPct / 100))} a month.
-          </AppText>
+          <StatLine label={tr('Pensionable pay per month')} value={major(num.salary / 12)} bold />
+          <AppText variant="caption">{tr('You pay {0} and your employer pays {1} a month.', [major((num.salary / 12) * (num.employeePct / 100)), major((num.salary / 12) * (num.employerPct / 100))])}</AppText>
         </Card>
       )}
 
       <Card>
-        <AppText variant="heading">Contributions</AppText>
+        <AppText variant="heading">{tr('Contributions')}</AppText>
         <View style={styles.pair}>
-          {field('employeePct', pensionBase ? 'You (% of pensionable pay)' : 'You (% of salary)')}
-          {field('employerPct', 'Employer (%)')}
+          {field('employeePct', pensionBase ? tr('You (% of pensionable pay)') : tr('You (% of salary)'))}
+          {field('employerPct', tr('Employer (%)'))}
         </View>
-        {field('salaryCap', 'Contribution salary cap (per year)', {
+        {field('salaryCap', tr('Contribution salary cap (per year)'), {
           money: true,
-          hint: num.salaryCap > 0 ? 'Contributions stop above this salary. Set it to 0 for no cap.' : 'No cap. Contributions apply to your full salary.',
+          hint: num.salaryCap > 0 ? tr('Contributions stop above this salary. Set it to 0 for no cap.') : tr('No cap. Contributions apply to your full salary.'),
         })}
-        {field('extraMonthly', 'Extra monthly top-up', { money: true, hint: 'Voluntary contributions on top of the mandatory ones.' })}
+        {field('extraMonthly', tr('Extra monthly top-up'), { money: true, hint: tr('Voluntary contributions on top of the mandatory ones.') })}
       </Card>
 
       <Card>
-        <AppText variant="heading">Assumptions</AppText>
+        <AppText variant="heading">{tr('Assumptions')}</AppText>
         <View style={styles.pair}>
-          {field('returnPct', 'Investment return %')}
-          {field('salaryGrowthPct', 'Salary growth %')}
+          {field('returnPct', tr('Investment return %'))}
+          {field('salaryGrowthPct', tr('Salary growth %'))}
         </View>
         <View style={styles.pair}>
-          {field('inflationPct', 'Inflation %')}
-          {field('withdrawalPct', 'Withdrawal rate %')}
+          {field('inflationPct', tr('Inflation %'))}
+          {field('withdrawalPct', tr('Withdrawal rate %'))}
         </View>
-        {field('targetMonthlyIncome', 'Target monthly income (today’s money)', {
+        {field('targetMonthlyIncome', tr('Target monthly income (today’s money)'), {
           money: true,
-          hint: 'Optional. Set it to see whether you’re on track.',
+          hint: tr('Optional. Set it to see whether you’re on track.'),
         })}
       </Card>
 
       {isPro ? (
         <>
           <Card>
-            <AppText variant="label">Pot at age {num.currentAge + r.years}</AppText>
+            <AppText variant="label">{tr('Pot at age {0}', [num.currentAge + r.years])}</AppText>
             <AppText variant="display" color={t.primary} adjustsFontSizeToFit numberOfLines={1}>
               {major(r.pot)}
             </AppText>
-            <AppText variant="caption">Worth {major(r.potReal)} in today’s money</AppText>
+            <AppText variant="caption">{tr('Worth {0} in today’s money', [major(r.potReal)])}</AppText>
             {conversion.rate !== null && currency !== homeCurrency && (
-              <AppText variant="caption" color={t.primary}>
-                ≈ {formatMajor(r.potReal * conversion.rate, homeCurrency)} in {homeCurrency} today, at official central bank rates
-              </AppText>
+              <AppText variant="caption" color={t.primary}>{tr('≈ {0} in {1} today, at official central bank rates', [formatMajor(r.potReal * conversion.rate, homeCurrency), homeCurrency])}</AppText>
             )}
             <Divider />
-            <StatLine label="Estimated retirement income" value={`${major(r.monthlyIncomeReal)}/month`} color={t.income} bold />
-            <AppText variant="caption">In today’s money, withdrawing {inputs.withdrawalPct}% of the pot a year.</AppText>
+            <StatLine label={tr('Estimated retirement income')} value={`${major(r.monthlyIncomeReal)}/month`} color={t.income} bold />
+            <AppText variant="caption">{tr('In today’s money, withdrawing {0}% of the pot a year.', [inputs.withdrawalPct])}</AppText>
             <Divider />
-            <StatLine label="Starting pot" value={major(num.currentPot)} />
-            <StatLine label="Your contributions" value={major(r.employeeTotal)} />
-            <StatLine label="Employer contributions" value={major(r.employerTotal)} />
-            {r.extraTotal > 0 && <StatLine label="Extra top-ups" value={major(r.extraTotal)} />}
-            <StatLine label="Investment growth" value={major(r.growth)} color={t.income} />
+            <StatLine label={tr('Starting pot')} value={major(num.currentPot)} />
+            <StatLine label={tr('Your contributions')} value={major(r.employeeTotal)} />
+            <StatLine label={tr('Employer contributions')} value={major(r.employerTotal)} />
+            {r.extraTotal > 0 && <StatLine label={tr('Extra top-ups')} value={major(r.extraTotal)} />}
+            <StatLine label={tr('Investment growth')} value={major(r.growth)} color={t.income} />
           </Card>
 
           {num.targetMonthlyIncome > 0 && (
             <Card style={{ borderColor: onTrack ? t.income : t.warning, borderWidth: 1 }}>
               <AppText variant="heading" color={onTrack ? t.income : t.warning}>
-                {onTrack ? 'You’re on track' : 'You may fall short'}
+                {onTrack ? tr('You’re on track') : tr('You may fall short')}
               </AppText>
-              <StatLine label="Pot needed (today’s money)" value={major(r.requiredPotReal)} />
+              <StatLine label={tr('Pot needed (today’s money)')} value={major(r.requiredPotReal)} />
               {!onTrack && (
                 <>
-                  <StatLine label="Shortfall (today’s money)" value={major(r.shortfallReal)} color={t.expense} />
-                  <StatLine label="Extra needed each month" value={major(r.extraMonthlyNeeded)} bold />
+                  <StatLine label={tr('Shortfall (today’s money)')} value={major(r.shortfallReal)} color={t.expense} />
+                  <StatLine label={tr('Extra needed each month')} value={major(r.extraMonthlyNeeded)} bold />
                 </>
               )}
             </Card>
@@ -190,7 +184,7 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
 
           {points.length > 1 && (
             <Card>
-              <AppText variant="heading">Pot by age</AppText>
+              <AppText variant="heading">{tr('Pot by age')}</AppText>
               <BarChart
                 labels={points.map((p) => String(p.age))}
                 series={[{ color: t.primary, values: points.map((p) => p.pot) }]}
@@ -202,16 +196,16 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
         </>
       ) : (
         <ProLock
-          title="See your retirement projection"
-          message={`BudT Pro projects your pension pot and retirement income${preset ? ` under ${preset.pension.scheme}` : ''}, and shows whether you’re on track.`}
+          title={tr('See your retirement projection')}
+          message={tr('BudT Pro projects your pension pot and retirement income{0}, and shows whether you’re on track.', [preset ? tr(' under {0}', [preset.pension.scheme]) : ''])}
         />
       )}
 
       <PresetNotes
-        title={preset ? `${preset.name}: ${preset.pension.scheme}` : 'About this projection'}
+        title={preset ? `${preset.name}: ${preset.pension.scheme}` : tr('About this projection')}
         notes={[
           ...(preset?.pension.notes ?? []),
-          'Projections are estimates based on your assumptions, not financial advice. Investment returns are not guaranteed.',
+          tr('Projections are estimates based on your assumptions, not financial advice. Investment returns are not guaranteed.'),
         ]}
       />
     </Screen>

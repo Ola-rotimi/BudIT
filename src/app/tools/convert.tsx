@@ -11,6 +11,7 @@ import { CURRENCIES, formatMajor, parseNumber } from '@/lib/money';
 import { usePro } from '@/lib/pro';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 type Side = 'from' | 'to';
 
@@ -41,23 +42,23 @@ export default function CurrencyConverter() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Currency converter' }} />
+      <Stack.Screen options={{ title: tr('Currency converter') }} />
 
       <Card>
-        <Field label="Amount" prefix={from} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+        <Field label={tr('Amount')} prefix={from} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
         <View style={styles.pairRow}>
-          <CurrencyButton label="From" code={from} active={picking === 'from'} onPress={() => setPicking(picking === 'from' ? null : 'from')} />
+          <CurrencyButton label={tr('From')} code={from} active={picking === 'from'} onPress={() => setPicking(picking === 'from' ? null : 'from')} />
           <Pressable
             onPress={() => {
               setFrom(to);
               setTo(from);
             }}
-            accessibilityLabel="Swap currencies"
+            accessibilityLabel={tr('Swap currencies')}
             hitSlop={8}
             style={({ pressed }) => [styles.swap, { backgroundColor: t.primarySoft }, pressed && { opacity: 0.6 }]}>
             <Ionicons name="swap-horizontal" size={22} color={t.primary} />
           </Pressable>
-          <CurrencyButton label="To" code={to} active={picking === 'to'} onPress={() => setPicking(picking === 'to' ? null : 'to')} />
+          <CurrencyButton label={tr('To')} code={to} active={picking === 'to'} onPress={() => setPicking(picking === 'to' ? null : 'to')} />
         </View>
         {picking && (
           <View style={styles.grid}>
@@ -87,16 +88,14 @@ export default function CurrencyConverter() {
               fx.loading ? (
                 <View style={styles.status}>
                   <ActivityIndicator color={t.primary} />
-                  <AppText variant="caption">Fetching official rates…</AppText>
+                  <AppText variant="caption">{tr('Fetching official rates…')}</AppText>
                 </View>
               ) : (
                 <View style={styles.status}>
                   <Ionicons name="cloud-offline-outline" size={28} color={t.muted} />
-                  <AppText style={{ textAlign: 'center' }}>Couldn’t load the official rate for {fx.failed.join(' and ')}.</AppText>
-                  <AppText variant="caption" style={{ textAlign: 'center' }}>
-                    Check your connection and try again. Rates are saved for offline use once loaded.
-                  </AppText>
-                  <Button title="Try again" icon="refresh" variant="secondary" onPress={fx.refresh} />
+                  <AppText style={{ textAlign: 'center' }}>{tr('Couldn’t load the official rate for {0}.', [fx.failed.join(' and ')])}</AppText>
+                  <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Check your connection and try again. Rates are saved for offline use once loaded.')}</AppText>
+                  <Button title={tr('Try again')} icon="refresh" variant="secondary" onPress={fx.refresh} />
                 </View>
               )
             ) : (
@@ -115,17 +114,15 @@ export default function CurrencyConverter() {
                   1 {to} = {formatRate(1 / rate)} {from}
                 </AppText>
                 {fx.offline && (
-                  <AppText variant="caption" color={t.warning}>
-                    You’re offline, so the last saved official rates are shown.
-                  </AppText>
+                  <AppText variant="caption" color={t.warning}>{tr('You’re offline, so the last saved official rates are shown.')}</AppText>
                 )}
-                <Button title={fx.loading ? 'Refreshing…' : 'Refresh rates'} icon="refresh" variant="ghost" onPress={fx.refresh} disabled={fx.loading} />
+                <Button title={fx.loading ? tr('Refreshing…') : tr('Refresh rates')} icon="refresh" variant="ghost" onPress={fx.refresh} disabled={fx.loading} />
               </>
             )}
           </Card>
 
           <Card style={{ gap: 10 }}>
-            <AppText variant="heading">Where these rates come from</AppText>
+            <AppText variant="heading">{tr('Where these rates come from')}</AppText>
             {[from, to].map((code) => {
               const quote = fx.quotes[code];
               const { label, note } = describeSource(code);
@@ -138,16 +135,12 @@ export default function CurrencyConverter() {
                     </AppText>
                     <AppText variant="caption">{label}</AppText>
                     {quote && code !== 'USD' && (
-                      <AppText variant="caption">
-                        1 USD = {formatRate(quote.perUsd)} {code} · published {shortDate(quote.date)}
-                      </AppText>
+                      <AppText variant="caption">{tr('1 USD = {0} {1} · published {2}', [formatRate(quote.perUsd), code, shortDate(quote.date)])}</AppText>
                     )}
                     {note ? <AppText variant="caption">{note}</AppText> : null}
                     {quote?.sourceUrl ? (
                       <Pressable onPress={() => Linking.openURL(quote.sourceUrl!)} hitSlop={6}>
-                        <AppText variant="caption" color={t.primary}>
-                          View the central bank’s page
-                        </AppText>
+                        <AppText variant="caption" color={t.primary}>{tr('View the central bank’s page')}</AppText>
                       </Pressable>
                     ) : null}
                   </View>
@@ -159,15 +152,12 @@ export default function CurrencyConverter() {
         </>
       ) : (
         <ProLock
-          title="Convert at official rates"
-          message="BudT Pro converts between 37 currencies using each central bank’s official rate, with sources and dates."
+          title={tr('Convert at official rates')}
+          message={tr('BudT Pro converts between 37 currencies using each central bank’s official rate, with sources and dates.')}
         />
       )}
 
-      <AppText variant="caption" style={{ textAlign: 'center', paddingHorizontal: 16 }}>
-        Official central bank reference rates only. No parallel-market or bureau rates are used. Conversions between two non-USD currencies
-        are calculated through each bank’s US dollar rate. Banks and bureaux may charge a different rate.
-      </AppText>
+      <AppText variant="caption" style={{ textAlign: 'center', paddingHorizontal: 16 }}>{tr('Official central bank reference rates only. No parallel-market or bureau rates are used. Conversions between two non-USD currencies are calculated through each bank’s US dollar rate. Banks and bureaux may charge a different rate.')}</AppText>
     </Screen>
   );
 }

@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { SQLiteProvider, type SQLiteDatabase } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Alert, useColorScheme } from 'react-native';
 import { BackgroundJobs } from '@/components/BackgroundJobs';
 import { LockScreen } from '@/components/LockScreen';
@@ -12,6 +12,14 @@ import { ProProvider } from '@/lib/pro';
 import { SecurityProvider } from '@/lib/security';
 import { SettingsProvider, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
+
+/**
+ * The tabs sit beneath every other screen, so a modal reached by a deep link or a dev reload (e.g.
+ * /pin) still opens as a modal with somewhere to go back to. While the walkthrough guard hides the
+ * tabs, the router falls back to the first available screen (the walkthrough).
+ */
+export const unstable_settings = { anchor: '(tabs)' };
 
 /** Form screens presented as modals over the current screen. */
 const MODALS = ['transaction', 'budget', 'goal', 'contribute', 'bill', 'category', 'country', 'paywall', 'pin', 'account', 'transfer', 'debt', 'group-form'];
@@ -29,18 +37,26 @@ export default function RootLayout() {
       <DatabaseGate>
         <SettingsProvider>
           <ProProvider>
-            <ThemeProvider value={navTheme}>
-              <StatusBar style="auto" />
-              <BackgroundJobs />
-              <RootStack />
-              <ScreenshotNotice />
-            </ThemeProvider>
+            <LanguageRoot>
+              <ThemeProvider value={navTheme}>
+                <StatusBar style="auto" />
+                <BackgroundJobs />
+                <RootStack />
+                <ScreenshotNotice />
+              </ThemeProvider>
+            </LanguageRoot>
           </ProProvider>
         </SettingsProvider>
       </DatabaseGate>
       <LockScreen />
     </SecurityProvider>
   );
+}
+
+/** Re-mounts the app when the language changes, so every screen re-renders with the new strings. */
+function LanguageRoot({ children }: { children: ReactNode }) {
+  const { language } = useSettings();
+  return <Fragment key={language}>{children}</Fragment>;
 }
 
 /** Opens the (encrypted, where the build supports it) database before anything reads from it. */
@@ -57,8 +73,8 @@ function DatabaseGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!prepared?.unreadable) return;
     Alert.alert(
-      'Your earlier data couldn’t be opened',
-      'This can happen after moving BudT to a new phone, because its encryption key stays on the old one. You can restore your data from a BudT backup in Settings.',
+      tr('Your earlier data couldn’t be opened'),
+      tr('This can happen after moving BudT to a new phone, because its encryption key stays on the old one. You can restore your data from a BudT backup in Settings.'),
     );
   }, [prepared?.unreadable]);
 
@@ -86,12 +102,12 @@ function RootStack() {
   return (
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: t.primary, headerTitleStyle: { color: t.text } }}>
       <Stack.Protected guard={onboarded}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: tr('Home') }} />
       </Stack.Protected>
       <Stack.Protected guard={!onboarded}>
         <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade' }} />
       </Stack.Protected>
-      <Stack.Screen name="smart-budget" options={{ title: 'Smart budget' }} />
+      <Stack.Screen name="smart-budget" options={{ title: tr('Smart budget') }} />
       {MODALS.map((name) => (
         <Stack.Screen key={name} name={name} options={{ presentation: 'modal' }} />
       ))}

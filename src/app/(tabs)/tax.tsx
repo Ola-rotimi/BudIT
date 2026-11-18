@@ -13,6 +13,7 @@ import { formatMajor, formatPercent, parseNumber } from '@/lib/money';
 import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 type Period = 'month' | 'year';
 type BracketInput = { key: number; from: string; rate: string; rateTo?: number };
@@ -53,7 +54,7 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
   const gross = payAnnual ? payTotal(payAnnual) : parseNumber(salary) * perYear;
   const contributions: Contribution[] = preset
     ? tax!.contributions.filter((c) => !disabled.has(c.name))
-    : [{ name: 'Social contributions', deductible: false, brackets: [{ from: 0, rate: parseNumber(social) }] }];
+    : [{ name: tr('Social contributions'), deductible: false, brackets: [{ from: 0, rate: parseNumber(social) }] }];
 
   const result = calculateTax({
     grossAnnual: gross,
@@ -72,7 +73,7 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
   const deductibleTotal = result.contributions.reduce((s, c) => s + (c.deductible ? c.amount : 0), 0);
   /** Converts an annual figure to the selected period for display. */
   const p = (annual: number) => major(annual / perYear);
-  const periodLabel = period === 'month' ? 'month' : 'year';
+  const periodLabel = period === 'month' ? tr('month') : tr('year');
 
   const updateBracket = (key: number, field: 'from' | 'rate', value: string) =>
     setBrackets((list) => list.map((b) => (b.key === key ? { ...b, [field]: value, ...(field === 'rate' && { rateTo: undefined }) } : b)));
@@ -90,10 +91,10 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
     });
 
   const pieData = [
-    { value: Math.max(0, result.netAnnual), color: t.income, label: 'Take-home' },
-    { value: result.incomeTax, color: t.expense, label: 'Income tax' },
-    { value: result.contributionsTotal, color: t.warning, label: 'Contributions' },
-    { value: parseNumber(deductions) * perYear, color: t.primary, label: 'Pre-tax deductions' },
+    { value: Math.max(0, result.netAnnual), color: t.income, label: tr('Take-home') },
+    { value: result.incomeTax, color: t.expense, label: tr('Income tax') },
+    { value: result.contributionsTotal, color: t.warning, label: tr('Contributions') },
+    { value: parseNumber(deductions) * perYear, color: t.primary, label: tr('Pre-tax deductions') },
   ].filter((d) => d.value > 0);
 
   return (
@@ -118,54 +119,50 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
             setPeriod(next);
           }}
           options={[
-            { value: 'month', label: 'Monthly pay' },
-            { value: 'year', label: 'Annual pay' },
+            { value: 'month', label: tr('Monthly pay') },
+            { value: 'year', label: tr('Annual pay') },
           ]}
         />
         {structure ? (
           <>
-            <AppText variant="caption">
-              Enter your pay per {periodLabel} as it appears on your payslip. {describePayRules(tax!.contributions)}
-            </AppText>
+            <AppText variant="caption">{tr('Enter your pay per {0} as it appears on your payslip. {1}', [periodLabel, describePayRules(tax!.contributions)])}</AppText>
             <PayFields fields={structure.fields} values={pay} onChange={(k, v) => setPay((s) => ({ ...s, [k]: v }))} currency={currency} />
-            <StatLine label={`Gross pay per ${periodLabel}`} value={p(gross)} bold />
-            <AppText variant="caption">{period === 'month' ? `${major(gross)} a year` : `${major(gross / 12)} a month`}</AppText>
+            <StatLine label={tr('Gross pay per {0}', [periodLabel])} value={p(gross)} bold />
+            <AppText variant="caption">{period === 'month' ? tr('{0} a year', [major(gross)]) : tr('{0} a month', [major(gross / 12)])}</AppText>
           </>
         ) : (
           <Field
-            label={`Gross salary per ${periodLabel}`}
+            label={tr('Gross salary per {0}', [periodLabel])}
             prefix={currency}
             value={salary}
             onChangeText={setSalary}
             keyboardType="decimal-pad"
-            hint={period === 'month' ? `${major(gross)} a year` : `${major(gross / 12)} a month`}
+            hint={period === 'month' ? tr('{0} a year', [major(gross)]) : tr('{0} a month', [major(gross / 12)])}
           />
         )}
         {tax?.rentRelief && (
           <Field
-            label="Rent you pay per year"
+            label={tr('Rent you pay per year')}
             prefix={currency}
             value={rent}
             onChangeText={setRent}
             keyboardType="decimal-pad"
-            hint={`Rent relief: ${tax.rentRelief.pct}% of rent, up to ${major(tax.rentRelief.cap)} a year${result.rentRelief > 0 ? `. You get ${major(result.rentRelief)}.` : '.'}`}
+            hint={tr('Rent relief: {0}% of rent, up to {1} a year{2}', [tax.rentRelief.pct, major(tax.rentRelief.cap), result.rentRelief > 0 ? tr('. You get {0}.', [major(result.rentRelief)]) : '.'])}
           />
         )}
         <Field
-          label={`Pre-tax deductions per ${periodLabel}`}
+          label={tr('Pre-tax deductions per {0}', [periodLabel])}
           prefix={currency}
           value={deductions}
           onChangeText={setDeductions}
           keyboardType="decimal-pad"
           hint={
-            tax?.rentRelief
-              ? 'Other allowed deductions, such as NHIS, life assurance premiums or voluntary pension.'
-              : 'Reliefs paid before tax, such as voluntary pension, rent relief or retirement annuity.'
+            tax?.rentRelief ? tr('Other allowed deductions, such as NHIS, life assurance premiums or voluntary pension.') : tr('Reliefs paid before tax, such as voluntary pension, rent relief or retirement annuity.')
           }
         />
         {!preset && (
           <Field
-            label="Social security (% of gross)"
+            label={tr('Social security (% of gross)')}
             value={social}
             onChangeText={setSocial}
             keyboardType="decimal-pad"
@@ -175,21 +172,21 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
 
       {preset && tax!.contributions.length > 0 && (
         <Card style={{ gap: 10 }}>
-          <AppText variant="heading">Payroll contributions</AppText>
+          <AppText variant="heading">{tr('Payroll contributions')}</AppText>
           {tax!.contributions.map((c) => (
             <View key={c.name} style={styles.contribution}>
               <View style={{ flex: 1 }}>
-                <AppText weight="600">{c.name}</AppText>
+                <AppText weight="600">{tr(c.name)}</AppText>
                 <AppText variant="caption">
                   {describeBands(c.brackets, (v) => major(v, true), structure ? c.base : undefined)}
-                  {c.deductible ? ' · reduces taxable income' : ''}
+                  {c.deductible ? tr(' · reduces taxable income') : ''}
                 </AppText>
               </View>
               <Switch
                 value={!disabled.has(c.name)}
                 onValueChange={(on) => toggleContribution(c.name, on)}
                 trackColor={{ true: t.primary }}
-                accessibilityLabel={`Include ${c.name}`}
+                accessibilityLabel={tr('Include {0}', [c.name])}
               />
             </View>
           ))}
@@ -199,31 +196,26 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
       <Card>
         <Pressable onPress={() => setShowBands((s) => !s)} style={styles.bandsHeader} accessibilityRole="button">
           <View style={{ flex: 1 }}>
-            <AppText variant="heading">Tax bands & allowance</AppText>
-            <AppText variant="caption">
-              {brackets.length} bands{preset ? ` · ${tax!.year}` : ''} · tap to {showBands ? 'hide' : 'review or edit'}
-            </AppText>
+            <AppText variant="heading">{tr('Tax bands & allowance')}</AppText>
+            <AppText variant="caption">{tr('{0} bands{1} · tap to {2}', [brackets.length, preset ? ` · ${tax!.year}` : '', showBands ? tr('hide') : tr('review or edit')])}</AppText>
           </View>
           <Ionicons name={showBands ? 'chevron-up' : 'chevron-down'} size={20} color={t.muted} />
         </Pressable>
         {showBands && (
           <>
             <Field
-              label={`${tax?.allowanceLabel ?? 'Tax-free allowance'} (per year)`}
+              label={tr('{0} (per year)', [tax?.allowanceLabel ?? tr('Tax-free allowance')])}
               prefix={currency}
               value={allowance}
               onChangeText={setAllowance}
               keyboardType="decimal-pad"
             />
-            <AppText variant="caption">
-              Annual thresholds. Each rate applies to taxable income above its threshold.
-              {preset ? '' : ' These example bands are placeholders, so replace them with your local rates.'}
-            </AppText>
+            <AppText variant="caption">{tr('Annual thresholds. Each rate applies to taxable income above its threshold.{0}', [preset ? '' : tr(' These example bands are placeholders, so replace them with your local rates.')])}</AppText>
             {brackets.map((b, i) => (
               <View key={b.key} style={{ gap: 2 }}>
                 <View style={styles.bracket}>
                   <Field
-                    label={i === 0 ? 'From' : ''}
+                    label={i === 0 ? tr('From') : ''}
                     prefix={currency}
                     value={b.from}
                     onChangeText={(v) => updateBracket(b.key, 'from', v)}
@@ -231,7 +223,7 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
                     style={{ flex: 2 }}
                   />
                   <Field
-                    label={i === 0 ? 'Rate %' : ''}
+                    label={i === 0 ? tr('Rate %') : ''}
                     value={b.rate}
                     onChangeText={(v) => updateBracket(b.key, 'rate', v)}
                     keyboardType="decimal-pad"
@@ -240,16 +232,16 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
                   <Pressable
                     onPress={() => setBrackets((list) => list.filter((x) => x.key !== b.key))}
                     disabled={brackets.length === 1}
-                    accessibilityLabel="Remove band"
+                    accessibilityLabel={tr('Remove band')}
                     hitSlop={8}
                     style={[styles.remove, brackets.length === 1 && { opacity: 0.3 }]}>
                     <Ionicons name="close-circle" size={24} color={t.muted} />
                   </Pressable>
                 </View>
-                {b.rateTo !== undefined && <AppText variant="caption">Rate rises gradually to {b.rateTo}% across this band.</AppText>}
+                {b.rateTo !== undefined && <AppText variant="caption">{tr('Rate rises gradually to {0}% across this band.', [b.rateTo])}</AppText>}
               </View>
             ))}
-            <Button title="Add band" icon="add" variant="ghost" onPress={addBracket} />
+            <Button title={tr('Add band')} icon="add" variant="ghost" onPress={addBracket} />
           </>
         )}
       </Card>
@@ -257,54 +249,49 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
       {isPro ? (
         <>
           <Card>
-            <AppText variant="label">Take-home pay</AppText>
+            <AppText variant="label">{tr('Take-home pay')}</AppText>
             <AppText variant="display" color={t.income} adjustsFontSizeToFit numberOfLines={1}>
               {major(result.netMonthly)}
-              <AppText variant="heading" color={t.muted}>
-                {' '}
-                /month
-              </AppText>
+              <AppText variant="heading" color={t.muted}>{tr(' /month')}</AppText>
             </AppText>
-            <AppText variant="caption">{major(result.netAnnual)} a year</AppText>
+            <AppText variant="caption">{tr('{0} a year', [major(result.netAnnual)])}</AppText>
             {conversion.rate !== null && currency !== homeCurrency && (
-              <AppText variant="caption" color={t.primary}>
-                ≈ {formatMajor(result.netMonthly * conversion.rate, homeCurrency)} a month in {homeCurrency} at official central bank rates
-              </AppText>
+              <AppText variant="caption" color={t.primary}>{tr('≈ {0} a month in {1} at official central bank rates', [formatMajor(result.netMonthly * conversion.rate, homeCurrency), homeCurrency])}</AppText>
             )}
             {pieData.length > 1 && (
               <>
                 <DonutChart data={pieData} size={160} thickness={20}>
-                  <AppText variant="caption">You keep</AppText>
+                  <AppText variant="caption">{tr('You keep')}</AppText>
                   <AppText variant="heading">{formatPercent(gross ? result.netAnnual / gross : 0, 0)}</AppText>
                 </DonutChart>
                 <Legend items={pieData} />
               </>
             )}
             <Divider />
-            <AppText variant="label">Per {periodLabel}</AppText>
-            <StatLine label="Gross pay" value={p(gross)} />
-            {result.expenses > 0 && <StatLine label={tax?.expenseLabel ?? 'Expense deduction'} value={`−${p(result.expenses)}`} />}
-            {deductibleTotal > 0 && <StatLine label="Contributions deducted before tax" value={`−${p(deductibleTotal)}`} />}
-            {result.rentRelief > 0 && <StatLine label="Rent relief" value={`−${p(result.rentRelief)}`} />}
-            {parseNumber(deductions) > 0 && <StatLine label="Other pre-tax deductions" value={`−${p(parseNumber(deductions) * perYear)}`} />}
-            <StatLine label="Taxable income" value={p(result.taxable)} />
+            <AppText variant="label">{tr('Per {0}', [periodLabel])}</AppText>
+            <StatLine label={tr('Gross pay')} value={p(gross)} />
+            {result.expenses > 0 && <StatLine label={tax?.expenseLabel ?? tr('Expense deduction')} value={`−${p(result.expenses)}`} />}
+            {deductibleTotal > 0 && <StatLine label={tr('Contributions deducted before tax')} value={`−${p(deductibleTotal)}`} />}
+            {result.rentRelief > 0 && <StatLine label={tr('Rent relief')} value={`−${p(result.rentRelief)}`} />}
+            {parseNumber(deductions) > 0 && <StatLine label={tr('Other pre-tax deductions')} value={`−${p(parseNumber(deductions) * perYear)}`} />}
+            <StatLine label={tr('Taxable income')} value={p(result.taxable)} />
             {result.creditsApplied > 0 && (
               <StatLine label={summariseCredits(result.credits.map((c) => c.name))} value={`−${p(result.creditsApplied)}`} color={t.income} />
             )}
-            {result.surcharge > 0 && <StatLine label={tax?.surchargeLabel ?? 'Surcharge'} value={p(result.surcharge)} color={t.expense} />}
-            <StatLine label="Income tax" value={p(result.incomeTax)} color={t.expense} />
+            {result.surcharge > 0 && <StatLine label={tax?.surchargeLabel ?? tr('Surcharge')} value={p(result.surcharge)} color={t.expense} />}
+            <StatLine label={tr('Income tax')} value={p(result.incomeTax)} color={t.expense} />
             {result.contributions.map((c) => (
-              <StatLine key={c.name} label={c.name} value={p(c.amount)} color={t.expense} />
+              <StatLine key={c.name} label={tr(c.name)} value={p(c.amount)} color={t.expense} />
             ))}
-            <StatLine label="Total deductions" value={p(result.totalTax)} bold />
+            <StatLine label={tr('Total deductions')} value={p(result.totalTax)} bold />
             <Divider />
-            <StatLine label="Effective rate (tax + contributions)" value={formatPercent(result.effectiveRate)} />
-            <StatLine label="Marginal income tax rate" value={formatPercent(result.marginalRate, 1)} />
-            {result.usedAlternative && <AppText variant="caption">The standard-rate method gives a lower bill, so it is used.</AppText>}
+            <StatLine label={tr('Effective rate (tax + contributions)')} value={formatPercent(result.effectiveRate)} />
+            <StatLine label={tr('Marginal income tax rate')} value={formatPercent(result.marginalRate, 1)} />
+            {result.usedAlternative && <AppText variant="caption">{tr('The standard-rate method gives a lower bill, so it is used.')}</AppText>}
           </Card>
 
           <Card>
-            <AppText variant="heading">Income tax by band (per year)</AppText>
+            <AppText variant="heading">{tr('Income tax by band (per year)')}</AppText>
             {result.breakdown.map((b, i) => (
               <StatLine
                 key={i}
@@ -317,16 +304,16 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
         </>
       ) : (
         <ProLock
-          title="See your take-home pay"
-          message={`BudT Pro works out income tax, payroll deductions and take-home pay${preset ? ` using ${preset.name}’s ${tax!.year} rules` : ''}.`}
+          title={tr('See your take-home pay')}
+          message={tr('BudT Pro works out income tax, payroll deductions and take-home pay{0}.', [preset ? tr(' using {0}’s {1} rules', [preset.name, tax!.year]) : ''])}
         />
       )}
 
       <PresetNotes
-        title="About these rules"
+        title={tr('About these rules')}
         notes={[
           ...(tax?.notes ?? []),
-          'Estimates for a single employee with no dependants. Tax rules change with each budget, so confirm with your tax authority or payslip.',
+          tr('Estimates for a single employee with no dependants. Tax rules change with each budget, so confirm with your tax authority or payslip.'),
         ]}
       />
     </Screen>
@@ -336,18 +323,18 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
 /** Short description of a contribution schedule, e.g. "6% up to KSh 1.3M" or "0.5% → 2% → 3% → 8%". */
 function describeBands(brackets: TaxBracket[], fmt: (v: number) => string, base?: PayBase) {
   const [first, second] = brackets;
-  const of = base && base !== 'gross' ? PAY_BASE_LABEL[base] : 'pay';
-  if (brackets.length === 1) return `${first.rate}% of ${of}`;
-  if (brackets.length === 2 && second.rate === 0) return `${first.rate}% of ${of} up to ${fmt(second.from)} a year`;
-  if (brackets.length === 2 && first.rate === 0) return `${second.rate}% of ${of} above ${fmt(second.from)}`;
-  return brackets.map((b) => `${b.rate}%`).join(' → ') + ' by band';
+  const of = base && base !== 'gross' ? tr(PAY_BASE_LABEL[base]) : tr('pay');
+  if (brackets.length === 1) return tr('{0}% of {1}', [first.rate, of]);
+  if (brackets.length === 2 && second.rate === 0) return tr('{0}% of {1} up to {2} a year', [first.rate, of, fmt(second.from)]);
+  if (brackets.length === 2 && first.rate === 0) return tr('{0}% of {1} above {2}', [second.rate, of, fmt(second.from)]);
+  return brackets.map((b) => `${b.rate}%`).join(' → ') + tr(' by band');
 }
 
 /** e.g. "Pension (RSA) is worked out on your basic + housing + transport." */
 function describePayRules(contributions: Contribution[]) {
   const parts = contributions
     .filter((c) => c.base && c.base !== 'gross')
-    .map((c) => `${c.name} is worked out on your ${PAY_BASE_LABEL[c.base!]}`);
+    .map((c) => tr('{0} is worked out on your {1}', [tr(c.name), tr(PAY_BASE_LABEL[c.base!])]));
   return parts.length ? `${parts.join('; ')}.` : '';
 }
 

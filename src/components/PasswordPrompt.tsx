@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/lib/theme';
 import { AppText, Button, Field } from './ui';
+import { tr } from '@/i18n';
 
 const MIN_LENGTH = 8;
 
@@ -43,10 +44,10 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
 
   const submit = async () => {
     if (mode === 'create') {
-      if (password.length < MIN_LENGTH) return setError(`Use at least ${MIN_LENGTH} characters.`);
-      if (password !== confirm) return setError('The passwords don’t match.');
+      if (password.length < MIN_LENGTH) return setError(tr('Use at least {0} characters.', [MIN_LENGTH]));
+      if (password !== confirm) return setError(tr('The passwords don’t match.'));
     }
-    if (!password) return setError('Enter the password.');
+    if (!password) return setError(tr('Enter the password.'));
     setBusy(true);
     setError(null);
     const problem = await onSubmit(password);
@@ -60,7 +61,7 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
         <AppText variant="heading">{title}</AppText>
         <AppText variant="caption">{message}</AppText>
         <Field
-          label="Password"
+          label={tr('Password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!shown}
@@ -72,7 +73,7 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
         />
         {mode === 'create' && (
           <Field
-            label="Confirm password"
+            label={tr('Confirm password')}
             value={confirm}
             onChangeText={setConfirm}
             secureTextEntry={!shown}
@@ -84,13 +85,11 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
         <Pressable onPress={() => setShown((s) => !s)} style={styles.show} hitSlop={8} accessibilityRole="button">
           <Ionicons name={shown ? 'eye-off-outline' : 'eye-outline'} size={18} color={t.primary} />
           <AppText variant="caption" color={t.primary}>
-            {shown ? 'Hide password' : 'Show password'}
+            {shown ? tr('Hide password') : tr('Show password')}
           </AppText>
         </Pressable>
         {mode === 'create' && (
-          <AppText variant="caption" color={t.warning}>
-            Keep this password safe. Without it the backup can’t be opened, not even by BudT.
-          </AppText>
+          <AppText variant="caption" color={t.warning}>{tr('Keep this password safe. Without it the backup can’t be opened, not even by BudT.')}</AppText>
         )}
         {error && (
           <AppText variant="caption" color={t.expense}>
@@ -101,8 +100,8 @@ function PromptBody({ mode, title, message, onSubmit, onCancel }: Omit<Parameter
           <ActivityIndicator color={t.primary} style={{ marginVertical: 12 }} />
         ) : (
           <View style={styles.actions}>
-            <Button title="Cancel" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
-            <Button title={mode === 'create' ? 'Encrypt' : 'Unlock'} icon="lock-closed" onPress={submit} style={{ flex: 1 }} />
+            <Button title={tr('Cancel')} variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
+            <Button title={mode === 'create' ? tr('Encrypt') : tr('Unlock')} icon="lock-closed" onPress={submit} style={{ flex: 1 }} />
           </View>
         )}
       </View>

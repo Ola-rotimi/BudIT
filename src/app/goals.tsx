@@ -10,6 +10,7 @@ import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { LimitNote } from '@/components/ProLock';
 import { useFreeLimit } from '@/lib/limits';
+import { tr } from '@/i18n';
 
 export default function GoalsScreen() {
   const { money } = useMoney();
@@ -24,24 +25,22 @@ export default function GoalsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Savings goals', headerRight: () => <HeaderButton icon="add" label="New goal" onPress={newGoal} /> }} />
+      <Stack.Screen options={{ title: tr('Savings goals'), headerRight: () => <HeaderButton icon="add" label={tr('New goal')} onPress={newGoal} /> }} />
       {goals.length === 0 ? (
         <Card>
           <EmptyState
             icon="flag-outline"
-            title="No goals yet"
-            message="Saving for a holiday, a car or an emergency fund? Create a goal and track your progress."
-            action={{ label: 'Create a goal', onPress: newGoal }}
+            title={tr('No goals yet')}
+            message={tr('Saving for a holiday, a car or an emergency fund? Create a goal and track your progress.')}
+            action={{ label: tr('Create a goal'), onPress: newGoal }}
           />
         </Card>
       ) : (
         <>
           <Card>
-            <AppText variant="label">Total saved</AppText>
+            <AppText variant="label">{tr('Total saved')}</AppText>
             <AppText variant="title">{money(saved)}</AppText>
-            <AppText variant="caption">
-              {formatPercent(target ? saved / target : 0, 0)} of {money(target)} across {goals.length} goal{goals.length === 1 ? '' : 's'}
-            </AppText>
+            <AppText variant="caption">{tr('{0} of {1} across {2} goal{3}', [formatPercent(target ? saved / target : 0, 0), money(target), goals.length, goals.length === 1 ? '' : 's'])}</AppText>
           </Card>
           {goals.map((g) => (
             <GoalCard key={g.id} goal={g} />
@@ -60,13 +59,13 @@ function GoalCard({ goal: g }: { goal: Goal }) {
   const remaining = g.target - g.saved;
 
   let pace = '';
-  if (done) pace = 'Goal reached — well done!';
+  if (done) pace = tr('Goal reached — well done!');
   else if (g.deadline) {
     const days = daysBetween(todayISO(), g.deadline);
-    if (days <= 0) pace = `Target date passed (${shortDate(g.deadline)})`;
+    if (days <= 0) pace = tr('Target date passed ({0})', [shortDate(g.deadline)]);
     else {
       const months = Math.max(1, days / 30.44);
-      pace = `${money(Math.ceil(remaining / months))}/month to reach it by ${shortDate(g.deadline)}`;
+      pace = tr('{0}/month to reach it by {1}', [money(Math.ceil(remaining / months)), shortDate(g.deadline)]);
     }
   }
 
@@ -76,9 +75,7 @@ function GoalCard({ goal: g }: { goal: Goal }) {
         <IconBadge icon={done ? 'trophy' : g.icon} color={g.color} />
         <View style={{ flex: 1 }}>
           <AppText weight="700">{g.name}</AppText>
-          <AppText variant="caption">
-            {money(g.saved)} of {money(g.target)}
-          </AppText>
+          <AppText variant="caption">{tr('{0} of {1}', [money(g.saved), money(g.target)])}</AppText>
         </View>
         <AppText weight="700" color={g.color}>
           {formatPercent(g.saved / g.target, 0)}
@@ -92,7 +89,7 @@ function GoalCard({ goal: g }: { goal: Goal }) {
       ) : null}
       {!done && (
         <Button
-          title="Add money"
+          title={tr('Add money')}
           icon="add-circle-outline"
           variant="secondary"
           onPress={() => router.push({ pathname: '/contribute', params: { id: String(g.id) } })}

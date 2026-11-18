@@ -7,8 +7,9 @@ import { useQuery } from '@/hooks/useQuery';
 import { shortDate } from '@/lib/dates';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { N_, tr } from '@/i18n';
 
-const EVERY = { weekly: 'Every week', monthly: 'Every month', yearly: 'Every year' } as const;
+const EVERY = { weekly: N_('Every week'), monthly: N_('Every month'), yearly: N_('Every year') } as const;
 
 /** Rules that add income or spending automatically (salary, rent, subscriptions…). */
 export default function RecurringScreen() {
@@ -18,19 +19,19 @@ export default function RecurringScreen() {
   if (!rules) return <Loading />;
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Recurring', headerRight: () => <HeaderButton icon="add" label="Add recurring" onPress={addNew} /> }} />
+      <Stack.Screen options={{ title: tr('Recurring'), headerRight: () => <HeaderButton icon="add" label={tr('Add recurring')} onPress={addNew} /> }} />
       {rules.length === 0 ? (
         <Card>
           <EmptyState
             icon="repeat"
-            title="Nothing recurring yet"
-            message="When you add a transaction, choose Repeat (weekly, monthly or yearly) and BudT will record it for you on each date: salary, rent, subscriptions and more."
-            action={{ label: 'Add a transaction', onPress: addNew }}
+            title={tr('Nothing recurring yet')}
+            message={tr('When you add a transaction, choose Repeat (weekly, monthly or yearly) and BudT will record it for you on each date: salary, rent, subscriptions and more.')}
+            action={{ label: tr('Add a transaction'), onPress: addNew }}
           />
         </Card>
       ) : (
         <>
-          <AppText variant="caption">BudT adds these automatically when they’re due, even if you haven’t opened the app for a while.</AppText>
+          <AppText variant="caption">{tr('BudT adds these automatically when they’re due, even if you haven’t opened the app for a while.')}</AppText>
           <Card style={{ gap: 6 }}>
             {rules.map((r, i) => (
               <View key={r.id}>
@@ -50,30 +51,25 @@ function RuleRow({ rule: r }: { rule: RecurringRow }) {
   const db = useSQLiteContext();
   const { money } = useMoney();
   const stop = () =>
-    Alert.alert('Stop this recurring entry?', `BudT won’t add “${r.note || r.category_name}” any more. Entries already added are kept.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Stop', style: 'destructive', onPress: () => stopRecurring(db, r.id) },
+    Alert.alert(tr('Stop this recurring entry?'), tr('BudT won’t add “{0}” any more. Entries already added are kept.', [r.note || tr(r.category_name)]), [
+      { text: tr('Cancel'), style: 'cancel' },
+      { text: tr('Stop'), style: 'destructive', onPress: () => stopRecurring(db, r.id) },
     ]);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }}>
       <IconBadge icon={r.category_icon} color={r.category_color} />
       <View style={{ flex: 1 }}>
         <AppText weight="600" numberOfLines={1}>
-          {r.note || r.category_name}
+          {r.note || tr(r.category_name)}
         </AppText>
-        <AppText variant="caption" numberOfLines={2}>
-          {EVERY[r.frequency]} · next {shortDate(r.next_date)}
-          {r.account_name ? ` · ${r.account_name}` : ''}
-        </AppText>
+        <AppText variant="caption" numberOfLines={2}>{tr('{0} · next {1}{2}', [tr(EVERY[r.frequency]), shortDate(r.next_date), r.account_name ? ` · ${r.account_name}` : ''])}</AppText>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <AppText weight="700" color={r.type === 'income' ? t.income : undefined}>
           {r.type === 'income' ? '+' : '−'}
           {money(r.amount)}
         </AppText>
-        <AppText variant="caption" color={t.expense} onPress={stop} accessibilityRole="button">
-          Stop
-        </AppText>
+        <AppText variant="caption" color={t.expense} onPress={stop} accessibilityRole="button">{tr('Stop')}</AppText>
       </View>
     </View>
   );

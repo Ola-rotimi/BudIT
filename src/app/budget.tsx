@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -8,6 +8,8 @@ import { categoryTotals, deleteBudget, getBudget, setBudget } from '@/db/queries
 import { currentMonthKey, shiftMonth } from '@/lib/dates';
 import { centsToInput, parseAmount } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 export default function BudgetScreen() {
   const params = useLocalSearchParams<{ categoryId?: string }>();
@@ -31,42 +33,42 @@ export default function BudgetScreen() {
 
   const save = async () => {
     const cents = parseAmount(amount);
-    if (!categoryId) return Alert.alert('Pick a category');
-    if (!cents) return Alert.alert('Enter a monthly limit', 'The amount must be greater than zero.');
+    if (!categoryId) return Alert.alert(tr('Pick a category'));
+    if (!cents) return Alert.alert(tr('Enter a monthly limit'), tr('The amount must be greater than zero.'));
     await setBudget(db, categoryId, cents);
-    router.back();
+    goBack();
   };
 
   const remove = () =>
-    Alert.alert('Remove this budget?', 'Your spending in this category is kept; only the monthly limit is removed.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Remove this budget?'), tr('Your spending in this category is kept; only the monthly limit is removed.'), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: tr('Remove'),
         style: 'destructive',
         onPress: async () => {
           await deleteBudget(db, categoryId!);
-          router.back();
+          goBack();
         },
       },
     ]);
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: exists ? 'Edit budget' : 'New budget', headerRight: exists ? () => <HeaderDeleteButton label="Remove budget" onPress={remove} /> : undefined }} />
+      <Stack.Screen options={{ title: exists ? tr('Edit budget') : tr('New budget'), headerRight: exists ? () => <HeaderDeleteButton label={tr('Remove budget')} onPress={remove} /> : undefined }} />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Category</AppText>
+        <AppText variant="label">{tr('Category')}</AppText>
         <CategoryPicker type="expense" value={categoryId} onChange={setCategoryId} />
       </View>
       <Field
-        label="Monthly limit"
+        label={tr('Monthly limit')}
         prefix={currency}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
         placeholder="0.00"
-        hint={lastMonth ? `You spent ${money(lastMonth)} on this last month.` : 'Budgets repeat every month.'}
+        hint={lastMonth ? tr('You spent {0} on this last month.', [money(lastMonth)]) : tr('Budgets repeat every month.')}
       />
-      <Button title="Save budget" icon="checkmark" onPress={save} />
+      <Button title={tr('Save budget')} icon="checkmark" onPress={save} />
     </Screen>
   );
 }

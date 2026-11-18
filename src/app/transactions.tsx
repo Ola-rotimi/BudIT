@@ -10,6 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { currentMonthKey, dayLabel } from '@/lib/dates';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 type Filter = 'all' | TxType;
 type Entry = { key: string; date: string; tx?: TxRow; transfer?: TransferData };
@@ -76,20 +77,20 @@ export default function TransactionsScreen() {
         <View style={{ gap: 12, marginBottom: 8 }}>
           <Stack.Screen
             options={{
-              title: data?.account?.name ?? 'Activity',
+              title: data?.account?.name ?? tr('Activity'),
               headerRight: () => (
                 <View style={{ flexDirection: 'row' }}>
                   {accountId ? (
-                    <HeaderButton icon="create-outline" label="Edit account" onPress={() => router.push({ pathname: '/account', params: { id: String(accountId) } })} />
+                    <HeaderButton icon="create-outline" label={tr('Edit account')} onPress={() => router.push({ pathname: '/account', params: { id: String(accountId) } })} />
                   ) : null}
                   <HeaderButton
                     icon="swap-horizontal"
-                    label="Transfer"
+                    label={tr('Transfer')}
                     onPress={() => router.push(accountId ? { pathname: '/transfer', params: { from: String(accountId) } } : '/transfer')}
                   />
                   <HeaderButton
                     icon="add"
-                    label="Add transaction"
+                    label={tr('Add transaction')}
                     onPress={() => router.push(accountId ? { pathname: '/transaction', params: { account: String(accountId) } } : '/transaction')}
                   />
                 </View>
@@ -98,7 +99,7 @@ export default function TransactionsScreen() {
           />
           {data?.account && (
             <View style={[styles.summary, { backgroundColor: t.card, borderColor: t.border }]}>
-              <SummaryItem label="Balance now" value={money(data.account.balance)} color={data.account.balance < 0 ? t.expense : t.text} />
+              <SummaryItem label={tr('Balance now')} value={money(data.account.balance)} color={data.account.balance < 0 ? t.expense : t.text} />
             </View>
           )}
           <MonthSwitcher month={month} onChange={setMonth} />
@@ -107,7 +108,7 @@ export default function TransactionsScreen() {
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search notes or categories"
+              placeholder={tr('Search notes or categories')}
               placeholderTextColor={t.muted}
               style={[styles.searchInput, { color: t.text }]}
               clearButtonMode="while-editing"
@@ -118,15 +119,15 @@ export default function TransactionsScreen() {
             value={filter}
             onChange={setFilter}
             options={[
-              { value: 'all', label: 'All' },
-              { value: 'expense', label: 'Expenses' },
-              { value: 'income', label: 'Income' },
+              { value: 'all', label: tr('All') },
+              { value: 'expense', label: tr('Expenses') },
+              { value: 'income', label: tr('Income') },
             ]}
           />
           <View style={[styles.summary, { backgroundColor: t.card, borderColor: t.border }]}>
-            <SummaryItem label="Income" value={money(income)} color={t.income} />
-            <SummaryItem label="Expenses" value={money(expense)} color={t.expense} />
-            <SummaryItem label="Net" value={money(income - expense, { sign: true })} color={t.text} />
+            <SummaryItem label={tr('Income')} value={money(income)} color={t.income} />
+            <SummaryItem label={tr('Expenses')} value={money(expense)} color={t.expense} />
+            <SummaryItem label={tr('Net')} value={money(income - expense, { sign: true })} color={t.text} />
           </View>
         </View>
       }
@@ -145,9 +146,9 @@ export default function TransactionsScreen() {
         rows ? (
           <EmptyState
             icon="receipt-outline"
-            title={search ? 'No matches' : 'Nothing recorded this month'}
-            message={search ? 'Try a different search term.' : 'Tap + to add an income or expense.'}
-            action={search ? undefined : { label: 'Add transaction', onPress: () => router.push('/transaction') }}
+            title={search ? tr('No matches') : tr('Nothing recorded this month')}
+            message={search ? tr('Try a different search term.') : tr('Tap + to add an income or expense.')}
+            action={search ? undefined : { label: tr('Add transaction'), onPress: () => router.push('/transaction') }}
           />
         ) : undefined
       }

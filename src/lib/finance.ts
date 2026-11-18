@@ -1,3 +1,5 @@
+import { N_ } from '@/i18n';
+
 /** Pure financial calculations used by the Tools screens. All values in major units. */
 
 // ---------- Loans ----------
@@ -84,9 +86,9 @@ export type PayBase = 'gross' | 'basic' | 'bht';
 export type PayBreakdown = { basic: number; housing: number; transport: number; other: number };
 
 export const PAY_BASE_LABEL: Record<PayBase, string> = {
-  gross: 'gross pay',
-  basic: 'basic salary',
-  bht: 'basic + housing + transport',
+  gross: N_('gross pay'),
+  basic: N_('basic salary'),
+  bht: N_('basic + housing + transport'),
 };
 
 /** Amount of pay each base covers. Without a breakdown, every base is the whole gross. */

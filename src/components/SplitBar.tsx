@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { BUCKETS, type Bucket } from '@/lib/smartBudget';
 import { AppText } from './ui';
+import { tr } from '@/i18n';
 
 const ORDER: Bucket[] = ['needs', 'wants', 'savings'];
 
@@ -8,7 +9,7 @@ const ORDER: Bucket[] = ['needs', 'wants', 'savings'];
 export function SplitBar({ split, amounts }: { split: Record<Bucket, number>; amounts?: Record<Bucket, string> }) {
   return (
     <View style={{ gap: 10 }}>
-      <View style={styles.bar} accessible accessibilityLabel={ORDER.map((b) => `${BUCKETS[b].label} ${split[b]}%`).join(', ')}>
+      <View style={styles.bar} accessible accessibilityLabel={ORDER.map((b) => `${tr(BUCKETS[b].label)} ${split[b]}%`).join(', ')}>
         {ORDER.map((b) => (
           <View key={b} style={{ flex: split[b], backgroundColor: BUCKETS[b].color }} />
         ))}
@@ -19,7 +20,7 @@ export function SplitBar({ split, amounts }: { split: Record<Bucket, number>; am
             <View style={styles.legendLabel}>
               <View style={[styles.dot, { backgroundColor: BUCKETS[b].color }]} />
               <AppText variant="caption" numberOfLines={1}>
-                {BUCKETS[b].label} {split[b]}%
+                {tr(BUCKETS[b].label)} {split[b]}%
               </AppText>
             </View>
             {amounts ? (

@@ -6,35 +6,36 @@
  * All amounts are in minor units (cents).
  */
 import type { Budget, Category, IconName } from '@/db/types';
+import { tr, N_ } from '@/i18n';
 
 export type Bucket = 'needs' | 'wants' | 'savings';
 export type PlanStyle = 'balanced' | 'essentials' | 'saver';
 
 export const PLAN_STYLES: Record<PlanStyle, { label: string; rule: string; split: Record<Bucket, number>; summary: string }> = {
   balanced: {
-    label: 'Balanced',
+    label: N_('Balanced'),
     rule: '50/30/20',
     split: { needs: 50, wants: 30, savings: 20 },
-    summary: 'The classic rule: half for essentials, 30% to enjoy, and a fifth saved.',
+    summary: N_('The classic rule: half for essentials, 30% to enjoy, and a fifth saved.'),
   },
   essentials: {
-    label: 'Essentials first',
+    label: N_('Essentials first'),
     rule: '60/20/20',
     split: { needs: 60, wants: 20, savings: 20 },
-    summary: 'For high rent or living costs: more room for essentials while still saving a fifth.',
+    summary: N_('For high rent or living costs: more room for essentials while still saving a fifth.'),
   },
   saver: {
-    label: 'Saver',
+    label: N_('Saver'),
     rule: '50/20/30',
     split: { needs: 50, wants: 20, savings: 30 },
-    summary: 'Pay yourself first and reach your goals sooner by trimming lifestyle spending.',
+    summary: N_('Pay yourself first and reach your goals sooner by trimming lifestyle spending.'),
   },
 };
 
 export const BUCKETS: Record<Bucket, { label: string; description: string; icon: IconName; color: string }> = {
-  needs: { label: 'Needs', description: 'Bills you must pay to live and work', icon: 'home', color: '#0F766E' },
-  wants: { label: 'Wants', description: 'Lifestyle spending you can dial up or down', icon: 'cafe', color: '#D97706' },
-  savings: { label: 'Savings & debt', description: 'Your future self: safety net, debt and investing', icon: 'shield-checkmark', color: '#6366F1' },
+  needs: { label: N_('Needs'), description: N_('Bills you must pay to live and work'), icon: 'home', color: '#0F766E' },
+  wants: { label: N_('Wants'), description: N_('Lifestyle spending you can dial up or down'), icon: 'cafe', color: '#D97706' },
+  savings: { label: N_('Savings & debt'), description: N_('Your future self: safety net, debt and investing'), icon: 'shield-checkmark', color: '#6366F1' },
 };
 
 /** Relative weights within each bucket, matched to the default category names. */
@@ -144,14 +145,14 @@ export function buildPlan({
     savings.push({ key, label, amount: roundTo(saveTotal * share, step), icon, color, note, categoryId });
 
   if (hasDebt) {
-    addSaving('debt', 'Extra debt repayment', 0.5, debtCategory?.icon ?? 'card', debtCategory?.color ?? '#78716C',
-      'Above the minimums, on your highest-interest debt first', debtCategory?.id);
-    addSaving('emergency', 'Emergency fund', 0.3, 'shield-checkmark', '#10B981', 'Until it covers 3 to 6 months of needs');
+    addSaving('debt', tr('Extra debt repayment'), 0.5, debtCategory?.icon ?? 'card', debtCategory?.color ?? '#78716C',
+      tr('Above the minimums, on your highest-interest debt first'), debtCategory?.id);
+    addSaving('emergency', tr('Emergency fund'), 0.3, 'shield-checkmark', '#10B981', tr('Until it covers 3 to 6 months of needs'));
   } else {
-    addSaving('emergency', 'Emergency fund', 0.5, 'shield-checkmark', '#10B981', 'Until it covers 3 to 6 months of needs');
+    addSaving('emergency', tr('Emergency fund'), 0.5, 'shield-checkmark', '#10B981', tr('Until it covers 3 to 6 months of needs'));
   }
   const rest = saveTotal - savings.reduce((s, l) => s + l.amount, 0);
-  savings.push({ key: 'invest', label: 'Retirement & investing', amount: rest, icon: 'trending-up', color: '#6366F1', note: 'Long-term growth, on top of any workplace pension' });
+  savings.push({ key: 'invest', label: tr('Retirement & investing'), amount: rest, icon: 'trending-up', color: '#6366F1', note: tr('Long-term growth, on top of any workplace pension') });
 
   const needsTotal = needs.reduce((s, l) => s + l.amount, 0);
   const total = (lines: PlanLine[]) => lines.reduce((s, l) => s + l.amount, 0);

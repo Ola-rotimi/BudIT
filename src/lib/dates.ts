@@ -1,3 +1,5 @@
+import { dateLocale, tr } from '@/i18n';
+
 /** Dates are stored as local `YYYY-MM-DD` strings; months as `YYYY-MM`. */
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -74,24 +76,24 @@ export function daysInMonth(key: string) {
 export function monthLabel(key: string, short = false) {
   const [y, m] = key.split('-').map(Number);
   if (short || periodStartDay === 1) {
-    return new Date(y, m - 1, 1).toLocaleDateString(undefined, short ? { month: 'short' } : { month: 'long', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(dateLocale(), short ? { month: 'short' } : { month: 'long', year: 'numeric' });
   }
   const [start, end] = periodRange(key);
   const last = addDays(fromISODate(end), -1);
-  const from = fromISODate(start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  const to = last.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  const from = fromISODate(start).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
+  const to = last.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
   return `${from} – ${to}`;
 }
 
 export function dayLabel(iso: string) {
   const today = todayISO();
-  if (iso === today) return 'Today';
-  if (iso === toISODate(addDays(new Date(), -1))) return 'Yesterday';
-  return fromISODate(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: iso.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric' });
+  if (iso === today) return tr('Today');
+  if (iso === toISODate(addDays(new Date(), -1))) return tr('Yesterday');
+  return fromISODate(iso).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short', year: iso.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric' });
 }
 
 export function shortDate(iso: string) {
-  return fromISODate(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return fromISODate(iso).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function addDays(d: Date, days: number) {

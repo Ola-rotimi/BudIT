@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, TextInput, View } from 'react-native';
@@ -12,6 +12,8 @@ import { advanceDate, shortDate, todayISO } from '@/lib/dates';
 import { centsToInput, formatPercent, groupDigits, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 type Repeat = 'none' | 'weekly' | 'monthly' | 'yearly';
 
@@ -56,8 +58,8 @@ export default function TransactionScreen() {
 
   const save = async () => {
     const cents = parseAmount(amount);
-    if (!cents) return Alert.alert('Enter an amount', 'The amount must be greater than zero.');
-    if (!categoryId) return Alert.alert('Pick a category');
+    if (!cents) return Alert.alert(tr('Enter an amount'), tr('The amount must be greater than zero.'));
+    if (!categoryId) return Alert.alert(tr('Pick a category'));
     await saveTransaction(db, { id, type, amount: cents, category_id: categoryId, account_id: accountId, date, note: note.trim() });
     // New spending only: warn when it pushes a budget past 80% or over the limit.
     const warning = !id && type === 'expense' ? await budgetWarning(db, categoryId, date, cents) : null;
@@ -73,26 +75,24 @@ export default function TransactionScreen() {
         next_date: advanceDate(date, repeat),
       });
     }
-    router.back();
+    goBack();
     if (warning) {
       Alert.alert(
-        warning.level === 'over' ? `${warning.name} budget exceeded` : `${warning.name} budget nearly used`,
-        warning.level === 'over'
-          ? `You’ve now spent ${formatPercent(warning.ratio, 0)} of this month’s ${warning.name} budget.`
-          : `You’ve used ${formatPercent(warning.ratio, 0)} of this month’s ${warning.name} budget.`,
+        warning.level === 'over' ? tr('{0} budget exceeded', [tr(warning.name)]) : tr('{0} budget nearly used', [tr(warning.name)]),
+        warning.level === 'over' ? tr('You’ve now spent {0} of this month’s {1} budget.', [formatPercent(warning.ratio, 0), warning.name]) : tr('You’ve used {0} of this month’s {1} budget.', [formatPercent(warning.ratio, 0), warning.name]),
       );
     }
   };
 
   const remove = () =>
-    Alert.alert('Delete transaction?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Delete transaction?'), tr('This cannot be undone.'), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: tr('Delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteTransaction(db, id!);
-          router.back();
+          goBack();
         },
       },
     ]);
@@ -101,18 +101,18 @@ export default function TransactionScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: id ? 'Edit transaction' : 'New transaction', headerRight: id ? () => <HeaderDeleteButton label="Delete transaction" onPress={remove} /> : undefined }} />
+      <Stack.Screen options={{ title: id ? tr('Edit transaction') : tr('New transaction'), headerRight: id ? () => <HeaderDeleteButton label={tr('Delete transaction')} onPress={remove} /> : undefined }} />
       <Segmented<TxType>
         value={type}
         onChange={changeType}
         options={[
-          { value: 'expense', label: 'Expense' },
-          { value: 'income', label: 'Income' },
+          { value: 'expense', label: tr('Expense') },
+          { value: 'income', label: tr('Income') },
         ]}
       />
 
       <View style={[styles.amountBox, { backgroundColor: t.card, borderColor: t.border }]}>
-        <AppText variant="label">Amount ({currency})</AppText>
+        <AppText variant="label">{tr('Amount ({0})', [currency])}</AppText>
         <TextInput
           value={groupDigits(amount)}
           onChangeText={(text) => setAmount(groupDigits(text, groupDigits(amount)))}
@@ -121,51 +121,48 @@ export default function TransactionScreen() {
           keyboardType="decimal-pad"
           autoFocus={!id}
           style={[styles.amountInput, { color: accent }]}
-          accessibilityLabel="Amount"
+          accessibilityLabel={tr('Amount')}
         />
       </View>
 
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Category</AppText>
+        <AppText variant="label">{tr('Category')}</AppText>
         <CategoryPicker type={type} value={categoryId} onChange={setCategoryId} />
       </View>
 
       {(accountCount ?? 0) > 1 && (
         <View style={{ gap: 8 }}>
-          <AppText variant="label">{type === 'income' ? 'Paid into' : 'Paid from'}</AppText>
+          <AppText variant="label">{type === 'income' ? tr('Paid into') : tr('Paid from')}</AppText>
           <AccountPicker value={accountId} onChange={setAccountId} />
         </View>
       )}
 
-      <DateField label="Date" value={date} onChange={setDate} />
-      <Field label="Note" value={note} onChangeText={setNote} placeholder="What was it for? (optional)" returnKeyType="done" />
+      <DateField label={tr('Date')} value={date} onChange={setDate} />
+      <Field label={tr('Note')} value={note} onChangeText={setNote} placeholder={tr('What was it for? (optional)')} returnKeyType="done" />
 
       {!id && (
         <View style={{ gap: 8 }}>
-          <AppText variant="label">Repeat</AppText>
+          <AppText variant="label">{tr('Repeat')}</AppText>
           <Segmented<Repeat>
             value={repeat}
             onChange={setRepeat}
             options={[
-              { value: 'none', label: 'Never' },
-              { value: 'weekly', label: 'Weekly' },
-              { value: 'monthly', label: 'Monthly' },
-              { value: 'yearly', label: 'Yearly' },
+              { value: 'none', label: tr('Never') },
+              { value: 'weekly', label: tr('Weekly') },
+              { value: 'monthly', label: tr('Monthly') },
+              { value: 'yearly', label: tr('Yearly') },
             ]}
           />
           {repeat !== 'none' && (
-            <AppText variant="caption">
-              BudT will add this {type} automatically every {repeat === 'weekly' ? 'week' : repeat === 'monthly' ? 'month' : 'year'}, starting{' '}
-              {shortDate(advanceDate(date, repeat))}. Manage it under More → Recurring.
-            </AppText>
+            <AppText variant="caption">{tr('BudT will add this {0} automatically every {1}, starting {2}. Manage it under More → Recurring.', [type === 'income' ? tr('income') : tr('expense'), repeat === 'weekly' ? tr('week') : repeat === 'monthly' ? tr('month') : tr('year'), shortDate(advanceDate(date, repeat))])}</AppText>
           )}
         </View>
       )}
       {recurringId !== null && (
-        <AppText variant="caption">Added automatically by a recurring rule. Editing this one doesn’t change the rule.</AppText>
+        <AppText variant="caption">{tr('Added automatically by a recurring rule. Editing this one doesn’t change the rule.')}</AppText>
       )}
 
-      <Button title={id ? 'Save changes' : `Add ${type}`} icon="checkmark" onPress={save} />
+      <Button title={id ? tr('Save changes') : type === 'income' ? tr('Add income') : tr('Add expense')} icon="checkmark" onPress={save} />
     </Screen>
   );
 }

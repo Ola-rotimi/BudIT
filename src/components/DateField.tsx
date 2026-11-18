@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, useColorScheme, View } from 'react-nat
 import { fromISODate, shortDate, toISODate } from '@/lib/dates';
 import { useTheme } from '@/lib/theme';
 import { AppText } from './ui';
+import { dateLocale } from '@/i18n';
 
 /** A labelled date input. iOS shows the native compact picker; Android opens the system dialog. */
 export function DateField({
@@ -110,7 +111,7 @@ export function TimeField({ label, value, onChange }: { label: string; value: st
     );
   }
 
-  const shown = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const shown = date.toLocaleTimeString(dateLocale(), { hour: 'numeric', minute: '2-digit' });
   const open = () => DateTimePickerAndroid.open({ value: date, mode: 'time', onValueChange: (_, d) => onChange(dateToTime(d)) });
 
   return (

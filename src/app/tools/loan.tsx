@@ -8,6 +8,7 @@ import { parseNumber } from '@/lib/money';
 import { usePro } from '@/lib/pro';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 export default function LoanCalculator() {
   const t = useTheme();
@@ -28,48 +29,48 @@ export default function LoanCalculator() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Loan & mortgage' }} />
+      <Stack.Screen options={{ title: tr('Loan & mortgage') }} />
       <Card>
-        <Field label="Loan amount" prefix={currency} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" />
+        <Field label={tr('Loan amount')} prefix={currency} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" />
         <View style={styles.pair}>
-          <Field label="Interest rate (% a year)" value={rate} onChangeText={setRate} keyboardType="decimal-pad" style={{ flex: 1 }} />
-          <Field label="Term (years)" value={years} onChangeText={setYears} keyboardType="decimal-pad" style={{ flex: 1 }} />
+          <Field label={tr('Interest rate (% a year)')} value={rate} onChangeText={setRate} keyboardType="decimal-pad" style={{ flex: 1 }} />
+          <Field label={tr('Term (years)')} value={years} onChangeText={setYears} keyboardType="decimal-pad" style={{ flex: 1 }} />
         </View>
         <Field
-          label="Extra monthly payment"
+          label={tr('Extra monthly payment')}
           prefix={currency}
           value={extra}
           onChangeText={setExtra}
           keyboardType="decimal-pad"
-          hint="Overpaying shortens the loan and reduces interest."
+          hint={tr('Overpaying shortens the loan and reduces interest.')}
         />
       </Card>
 
       {isPro ? (
         <>
           <Card>
-            <AppText variant="label">Monthly payment</AppText>
+            <AppText variant="label">{tr('Monthly payment')}</AppText>
             <AppText variant="display" color={t.primary} adjustsFontSizeToFit numberOfLines={1}>
               {major(base.payment)}
             </AppText>
             <Divider />
-            <StatLine label="Total interest" value={major(base.totalInterest)} color={t.expense} />
-            <StatLine label="Total repaid" value={major(base.totalPaid)} />
-            <StatLine label="Interest share" value={base.totalPaid ? `${((base.totalInterest / base.totalPaid) * 100).toFixed(1)}%` : '—'} />
+            <StatLine label={tr('Total interest')} value={major(base.totalInterest)} color={t.expense} />
+            <StatLine label={tr('Total repaid')} value={major(base.totalPaid)} />
+            <StatLine label={tr('Interest share')} value={base.totalPaid ? `${((base.totalInterest / base.totalPaid) * 100).toFixed(1)}%` : '—'} />
           </Card>
 
           {hasExtra && (
             <Card>
-              <AppText variant="heading">With {major(parseNumber(extra))} extra a month</AppText>
-              <StatLine label="Paying" value={`${major(base.payment + parseNumber(extra))}/month`} />
-              <StatLine label="Paid off in" value={fmtMonths(withExtra.months)} />
-              <StatLine label="Time saved" value={fmtMonths(base.months - withExtra.months)} color={t.income} />
-              <StatLine label="Interest saved" value={major(base.totalInterest - withExtra.totalInterest)} color={t.income} bold />
+              <AppText variant="heading">{tr('With {0} extra a month', [major(parseNumber(extra))])}</AppText>
+              <StatLine label={tr('Paying')} value={`${major(base.payment + parseNumber(extra))}/month`} />
+              <StatLine label={tr('Paid off in')} value={fmtMonths(withExtra.months)} />
+              <StatLine label={tr('Time saved')} value={fmtMonths(base.months - withExtra.months)} color={t.income} />
+              <StatLine label={tr('Interest saved')} value={major(base.totalInterest - withExtra.totalInterest)} color={t.income} bold />
             </Card>
           )}
         </>
       ) : (
-        <ProLock title="See your repayments" message="BudT Pro works out your monthly payment, total interest, and how much time and interest overpaying saves." />
+        <ProLock title={tr('See your repayments')} message={tr('BudT Pro works out your monthly payment, total interest, and how much time and interest overpaying saves.')} />
       )}
     </Screen>
   );

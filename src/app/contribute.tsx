@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -7,6 +7,8 @@ import { contributeToGoal, getGoal } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { parseAmount } from '@/lib/money';
 import { useMoney } from '@/lib/settings';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 type Mode = 'add' | 'withdraw';
 
@@ -22,10 +24,10 @@ export default function ContributeScreen() {
 
   const save = async () => {
     const cents = parseAmount(amount);
-    if (!cents) return Alert.alert('Enter an amount', 'The amount must be greater than zero.');
-    if (mode === 'withdraw' && cents > goal.saved) return Alert.alert('Not enough saved', `You have ${money(goal.saved)} in this goal.`);
+    if (!cents) return Alert.alert(tr('Enter an amount'), tr('The amount must be greater than zero.'));
+    if (mode === 'withdraw' && cents > goal.saved) return Alert.alert(tr('Not enough saved'), tr('You have {0} in this goal.', [money(goal.saved)]));
     await contributeToGoal(db, goal.id, mode === 'add' ? cents : -cents);
-    router.back();
+    goBack();
   };
 
   return (
@@ -35,8 +37,8 @@ export default function ContributeScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <IconBadge icon={goal.icon} color={goal.color} />
           <View style={{ flex: 1 }}>
-            <AppText weight="700">{money(goal.saved)} saved</AppText>
-            <AppText variant="caption">of {money(goal.target)} target</AppText>
+            <AppText weight="700">{tr('{0} saved', [money(goal.saved)])}</AppText>
+            <AppText variant="caption">{tr('of {0} target', [money(goal.target)])}</AppText>
           </View>
         </View>
         <ProgressBar progress={goal.saved / goal.target} color={goal.color} />
@@ -45,12 +47,12 @@ export default function ContributeScreen() {
         value={mode}
         onChange={setMode}
         options={[
-          { value: 'add', label: 'Add money' },
-          { value: 'withdraw', label: 'Withdraw' },
+          { value: 'add', label: tr('Add money') },
+          { value: 'withdraw', label: tr('Withdraw') },
         ]}
       />
-      <Field label="Amount" prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" autoFocus />
-      <Button title={mode === 'add' ? 'Add to goal' : 'Withdraw from goal'} icon="checkmark" onPress={save} />
+      <Field label={tr('Amount')} prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" autoFocus />
+      <Button title={mode === 'add' ? tr('Add to goal') : tr('Withdraw from goal')} icon="checkmark" onPress={save} />
     </Screen>
   );
 }

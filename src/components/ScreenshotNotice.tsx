@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSecurity } from '@/lib/security';
 import { useTheme } from '@/lib/theme';
 import { AppText } from './ui';
+import { tr } from '@/i18n';
 
 const SHOW_MS = 4500;
 
@@ -34,9 +35,9 @@ export function ScreenshotNotice() {
         style={[styles.banner, { backgroundColor: t.card, borderColor: t.border }]}>
         <Ionicons name="eye-off" size={22} color={t.primary} />
         <View style={{ flex: 1 }}>
-          <AppText weight="700">Screenshot blocked</AppText>
+          <AppText weight="700">{tr('Screenshot blocked')}</AppText>
           <AppText variant="caption">
-            {Platform.OS === 'ios' ? 'BudT’s privacy screen is on, so screenshots come out blank.' : 'BudT’s privacy screen is on, so screenshots are blocked.'}{' '}
+            {Platform.OS === 'ios' ? tr('BudT’s privacy screen is on, so screenshots come out blank.') : tr('BudT’s privacy screen is on, so screenshots are blocked.')}{' '}
             <AppText
               variant="caption"
               weight="700"
@@ -44,9 +45,7 @@ export function ScreenshotNotice() {
               onPress={() => {
                 setShownFor(screenshotBlockedAt);
                 router.push('/settings');
-              }}>
-              Change in Settings
-            </AppText>
+              }}>{tr('Change in Settings')}</AppText>
           </AppText>
         </View>
         <Ionicons name="close" size={18} color={t.muted} />

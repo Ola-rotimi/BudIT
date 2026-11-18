@@ -15,6 +15,7 @@ import { takePendingRoute } from '@/lib/onboarding';
 import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { BRAND, useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 /** Text on the brand-gradient hero card stays white in both light and dark mode. */
 const ON_HERO = '#FFFFFF';
@@ -73,10 +74,8 @@ export default function HomeScreen() {
           style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="globe-outline" size={22} color={t.primary} />
           <View style={{ flex: 1 }}>
-            <AppText weight="700">Where are you based?</AppText>
-            <AppText variant="caption">
-              Pick your country to set your currency{currencyChosen ? '' : ' (USD for now)'} and fill in local tax & pension rules.
-            </AppText>
+            <AppText weight="700">{tr('Where are you based?')}</AppText>
+            <AppText variant="caption">{tr('Pick your country to set your currency{0} and fill in local tax & pension rules.', [currencyChosen ? '' : tr(' (USD for now)')])}</AppText>
           </View>
           <Ionicons name="chevron-forward" size={18} color={t.muted} />
         </Card>
@@ -85,14 +84,12 @@ export default function HomeScreen() {
       <HeroCard>
         <View>
           <View style={styles.heroTop}>
-            <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85, flex: 1 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
-              {monthLabel(month)} · net
-            </AppText>
+            <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85, flex: 1 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>{tr('{0} · net', [monthLabel(month)])}</AppText>
             <Pressable
               onPress={() => setHideAmounts(!hideAmounts)}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel={hideAmounts ? 'Show amounts' : 'Hide amounts'}>
+              accessibilityLabel={hideAmounts ? tr('Show amounts') : tr('Hide amounts')}>
               <Ionicons name={hideAmounts ? 'eye-off-outline' : 'eye-outline'} size={20} color={ON_HERO} />
             </Pressable>
           </View>
@@ -107,31 +104,31 @@ export default function HomeScreen() {
           </AppText>
           <Pressable onPress={() => router.push('/accounts')} accessibilityRole="button" hitSlop={6}>
             <AppText variant="caption" color={ON_HERO} style={{ opacity: 0.85 }} numberOfLines={1} maxFontSizeMultiplier={HERO_MAX_SCALE}>
-              {accounts.length > 1 ? `Balance across ${accounts.length} accounts` : 'Balance'} {money(totalBalance)} ›
+              {accounts.length > 1 ? tr('Balance across {0} accounts', [accounts.length]) : tr('Balance')} {money(totalBalance)} ›
             </AppText>
           </Pressable>
         </View>
         <View style={styles.statPanel}>
-          <HeroStat icon="arrow-down" label="Income" value={money(totals.income)} />
+          <HeroStat icon="arrow-down" label={tr('Income')} value={money(totals.income)} />
           <View style={styles.statDivider} />
-          <HeroStat icon="arrow-up" label="Expenses" value={money(totals.expense)} />
+          <HeroStat icon="arrow-up" label={tr('Expenses')} value={money(totals.expense)} />
         </View>
         <View style={styles.heroRow}>
-          <HeroButton icon="list" label="Activity" onPress={() => router.push('/transactions')} />
-          <HeroButton icon="stats-chart" label="Insights" onPress={() => router.push('/insights')} />
+          <HeroButton icon="list" label={tr('Activity')} onPress={() => router.push('/transactions')} />
+          <HeroButton icon="stats-chart" label={tr('Insights')} onPress={() => router.push('/insights')} />
         </View>
       </HeroCard>
 
       <View style={styles.actions}>
         <Button
-          title="Expense"
+          title={tr('Expense')}
           icon="remove-circle-outline"
           variant="secondary"
           style={{ flex: 1 }}
           onPress={() => router.push({ pathname: '/transaction', params: { type: 'expense' } })}
         />
         <Button
-          title="Income"
+          title={tr('Income')}
           icon="add-circle-outline"
           variant="secondary"
           style={{ flex: 1 }}
@@ -143,10 +140,8 @@ export default function HomeScreen() {
         <Card onPress={() => router.push('/settings')} style={styles.smartCard}>
           <IconBadge icon="cloud-upload-outline" color={t.warning} />
           <View style={{ flex: 1 }}>
-            <AppText weight="700">Back up your data</AppText>
-            <AppText variant="caption">
-              {backupAgeDays === null ? 'You haven’t made a backup yet.' : `Your last backup was ${backupAgeDays} days ago.`} Your records only live on this phone.
-            </AppText>
+            <AppText weight="700">{tr('Back up your data')}</AppText>
+            <AppText variant="caption">{tr('{0} Your records only live on this phone.', [backupAgeDays === null ? tr('You haven’t made a backup yet.') : tr('Your last backup was {0} days ago.', [backupAgeDays])])}</AppText>
           </View>
           <Ionicons name="chevron-forward" size={18} color={t.muted} />
         </Card>
@@ -156,43 +151,37 @@ export default function HomeScreen() {
         <IconBadge icon="sparkles" color={t.primary} />
         <View style={{ flex: 1 }}>
           <View style={styles.smartTitle}>
-            <AppText weight="700">Smart budget</AppText>
+            <AppText weight="700">{tr('Smart budget')}</AppText>
             {!isPro && <ProBadge />}
           </View>
           <AppText variant="caption">
-            {budgets.length ? 'Rebalance your budgets from your income in one tap.' : 'Enter your income and BudT builds your whole budget.'}
+            {budgets.length ? tr('Rebalance your budgets from your income in one tap.') : tr('Enter your income and BudT builds your whole budget.')}
           </AppText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={t.muted} />
       </Card>
 
       <Card>
-        <SectionHeader title="Monthly budget" action={{ label: budgets.length ? 'Details' : 'Set up', onPress: () => router.navigate('/budgets') }} />
+        <SectionHeader title={tr('Monthly budget')} action={{ label: budgets.length ? tr('Details') : tr('Set up'), onPress: () => router.navigate('/budgets') }} />
         {budgets.length ? (
           <>
             <ProgressBar progress={budgetRatio} color={budgetColor(budgetRatio, t.primary)} height={10} />
             <View style={styles.between}>
-              <AppText variant="caption">
-                {money(budgetSpent)} of {money(budgetTotal)} ({formatPercent(budgetRatio, 0)})
-              </AppText>
-              <AppText variant="caption">
-                {daysLeft} day{daysLeft === 1 ? '' : 's'} left
-              </AppText>
+              <AppText variant="caption">{tr('{0} of {1} ({2})', [money(budgetSpent), money(budgetTotal), formatPercent(budgetRatio, 0)])}</AppText>
+              <AppText variant="caption">{tr('{0} day{1} left', [daysLeft, daysLeft === 1 ? '' : 's'])}</AppText>
             </View>
             {budgetTotal > budgetSpent && (
-              <AppText variant="caption">
-                You can spend about {money(Math.floor((budgetTotal - budgetSpent) / daysLeft))} a day for the rest of the month.
-              </AppText>
+              <AppText variant="caption">{tr('You can spend about {0} a day for the rest of the month.', [money(Math.floor((budgetTotal - budgetSpent) / daysLeft))])}</AppText>
             )}
           </>
         ) : (
-          <AppText variant="caption">Set spending limits per category to keep your month on track.</AppText>
+          <AppText variant="caption">{tr('Set spending limits per category to keep your month on track.')}</AppText>
         )}
       </Card>
 
       {upcoming.length > 0 && (
         <Card>
-          <SectionHeader title="Upcoming bills" action={{ label: 'All bills', onPress: () => router.push('/bills') }} />
+          <SectionHeader title={tr('Upcoming bills')} action={{ label: tr('All bills'), onPress: () => router.push('/bills') }} />
           {upcoming.map((b) => {
             const due = daysBetween(today, b.due_date);
             return (
@@ -201,7 +190,7 @@ export default function HomeScreen() {
                 icon={b.category_icon}
                 iconColor={b.category_color}
                 title={b.name}
-                subtitle={due < 0 ? `Overdue by ${-due} day${due === -1 ? '' : 's'}` : due === 0 ? 'Due today' : `Due ${dayLabel(b.due_date)}`}
+                subtitle={due < 0 ? tr('Overdue by {0} day{1}', [-due, due === -1 ? '' : 's']) : due === 0 ? tr('Due today') : tr('Due {0}', [dayLabel(b.due_date)])}
                 right={
                   <AppText weight="700" color={due < 0 ? t.expense : undefined}>
                     {money(b.amount)}
@@ -217,7 +206,7 @@ export default function HomeScreen() {
 
       {activeGoals.length > 0 && (
         <Card>
-          <SectionHeader title="Savings goals" action={{ label: 'All goals', onPress: () => router.push('/goals') }} />
+          <SectionHeader title={tr('Savings goals')} action={{ label: tr('All goals'), onPress: () => router.push('/goals') }} />
           {activeGoals.map((g) => (
             <View key={g.id} style={{ gap: 6 }}>
               <View style={styles.between}>
@@ -233,15 +222,15 @@ export default function HomeScreen() {
       )}
 
       <Card>
-        <SectionHeader title="Recent activity" action={recent.length ? { label: 'See all', onPress: () => router.push('/transactions') } : undefined} />
+        <SectionHeader title={tr('Recent activity')} action={recent.length ? { label: tr('See all'), onPress: () => router.push('/transactions') } : undefined} />
         {recent.length ? (
           recent.map((tx) => <TransactionRow key={tx.id} tx={tx} showDate={dayLabel(tx.date)} />)
         ) : (
           <EmptyState
             icon="receipt-outline"
-            title="No transactions yet"
-            message="Record your first income or expense to start tracking."
-            action={{ label: 'Add transaction', onPress: () => router.push('/transaction') }}
+            title={tr('No transactions yet')}
+            message={tr('Record your first income or expense to start tracking.')}
+            action={{ label: tr('Add transaction'), onPress: () => router.push('/transaction') }}
           />
         )}
       </Card>

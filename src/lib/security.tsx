@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState, Platform } from 'react-native';
 import { hashPin, verifyPin, type PinHash } from './crypto';
+import { tr } from '@/i18n';
 
 export type LockConfig = {
   enabled: boolean;
@@ -87,7 +88,7 @@ async function detectBiometrics(): Promise<BiometricKind | null> {
 }
 
 export function biometricLabel(kind: BiometricKind | null) {
-  return kind === 'face' ? 'Face ID' : kind === 'fingerprint' ? 'fingerprint' : 'biometrics';
+  return kind === 'face' ? 'Face ID' : kind === 'fingerprint' ? tr('fingerprint') : tr('biometrics');
 }
 
 export function SecurityProvider({ children }: { children: ReactNode }) {
@@ -234,15 +235,15 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       unlockWithBiometrics: async () => {
         if (!config.biometrics || !biometricKind) return false;
         const res = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Unlock BudT',
-          cancelLabel: 'Use PIN',
+          promptMessage: tr('Unlock BudT'),
+          cancelLabel: tr('Use PIN'),
           fallbackLabel: '',
           disableDeviceFallback: true,
         });
         return unlockAfter(res.success);
       },
       unlockWithDeviceCredentials: async () => {
-        const res = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock BudT with your phone’s passcode' });
+        const res = await LocalAuthentication.authenticateAsync({ promptMessage: tr('Unlock BudT with your phone’s passcode') });
         return unlockAfter(res.success);
       },
       update: (changes) => saveConfig({ ...config, ...changes }),

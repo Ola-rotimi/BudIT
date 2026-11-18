@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -11,6 +11,8 @@ import { centsToInput, parseAmount } from '@/lib/money';
 import { useSettings } from '@/lib/settings';
 import { ProScreen } from '@/components/ProLock';
 import { LIMIT_COPY, useFreeLimit } from '@/lib/limits';
+import { tr } from '@/i18n';
+import { goBack } from '@/lib/navigation';
 
 export default function BillScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -39,54 +41,53 @@ export default function BillScreen() {
 
   const save = async () => {
     const cents = parseAmount(amount);
-    if (!name.trim()) return Alert.alert('Give the bill a name');
-    if (!cents) return Alert.alert('Enter an amount', 'The amount must be greater than zero.');
-    if (!categoryId) return Alert.alert('Pick a category');
+    if (!name.trim()) return Alert.alert(tr('Give the bill a name'));
+    if (!cents) return Alert.alert(tr('Enter an amount'), tr('The amount must be greater than zero.'));
+    if (!categoryId) return Alert.alert(tr('Pick a category'));
     await saveBill(db, { id, name: name.trim(), amount: cents, category_id: categoryId, due_date: dueDate, frequency });
-    router.back();
+    goBack();
   };
 
   const remove = () =>
-    Alert.alert('Delete bill?', 'Past payments stay in your transactions.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(tr('Delete bill?'), tr('Past payments stay in your transactions.'), [
+      { text: tr('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: tr('Delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteBill(db, id!);
-          router.back();
+          goBack();
         },
       },
     ]);
 
-
   if (!id && canAdd === false) {
-    return <ProScreen screenTitle="Bills & subscriptions" title={LIMIT_COPY.bills.title} message={LIMIT_COPY.bills.message} />;
+    return <ProScreen screenTitle={tr('Bills & subscriptions')} title={tr(LIMIT_COPY.bills.title)} message={tr(LIMIT_COPY.bills.message)} />;
   }
   return (
     <Screen>
-      <Stack.Screen options={{ title: id ? 'Edit bill' : 'New bill', headerRight: id ? () => <HeaderDeleteButton label="Delete bill" onPress={remove} /> : undefined }} />
-      <Field label="Name" value={name} onChangeText={setName} placeholder="e.g. Rent, Netflix, Electricity" autoFocus={!id} />
-      <Field label="Amount" prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" />
+      <Stack.Screen options={{ title: id ? tr('Edit bill') : tr('New bill'), headerRight: id ? () => <HeaderDeleteButton label={tr('Delete bill')} onPress={remove} /> : undefined }} />
+      <Field label={tr('Name')} value={name} onChangeText={setName} placeholder={tr('e.g. Rent, Netflix, Electricity')} autoFocus={!id} />
+      <Field label={tr('Amount')} prefix={currency} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Repeats</AppText>
+        <AppText variant="label">{tr('Repeats')}</AppText>
         <Segmented<Frequency>
           value={frequency}
           onChange={setFrequency}
           options={[
-            { value: 'weekly', label: 'Weekly' },
-            { value: 'monthly', label: 'Monthly' },
-            { value: 'yearly', label: 'Yearly' },
-            { value: 'once', label: 'Once' },
+            { value: 'weekly', label: tr('Weekly') },
+            { value: 'monthly', label: tr('Monthly') },
+            { value: 'yearly', label: tr('Yearly') },
+            { value: 'once', label: tr('Once') },
           ]}
         />
       </View>
-      <DateField label="Next due date" value={dueDate} onChange={setDueDate} />
+      <DateField label={tr('Next due date')} value={dueDate} onChange={setDueDate} />
       <View style={{ gap: 8 }}>
-        <AppText variant="label">Category</AppText>
+        <AppText variant="label">{tr('Category')}</AppText>
         <CategoryPicker type="expense" value={categoryId} onChange={setCategoryId} />
       </View>
-      <Button title={id ? 'Save changes' : 'Add bill'} icon="checkmark" onPress={save} />
+      <Button title={id ? tr('Save changes') : tr('Add bill')} icon="checkmark" onPress={save} />
     </Screen>
   );
 }

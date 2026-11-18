@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import type { IconName } from '@/db/types';
 import { useTheme } from '@/lib/theme';
 import { AppText } from './ui';
+import { tr } from '@/i18n';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -34,9 +35,16 @@ export function PinPad({
     setPin(next);
     if (next.length < length) return;
     setBusy(true);
-    const ok = await onComplete(next);
-    setBusy(false);
-    setPin('');
+    let ok: boolean | void = false;
+    try {
+      ok = await onComplete(next);
+    } catch (e) {
+      // Never leave the pad stuck "busy": treat a failure like a rejected PIN.
+      console.warn('PIN handler failed', e);
+    } finally {
+      setBusy(false);
+      setPin('');
+    }
     if (ok === false) {
       Animated.sequence(
         [10, -10, 8, -8, 0].map((toValue) => Animated.timing(shake, { toValue, duration: 50, useNativeDriver: true })),
@@ -49,7 +57,7 @@ export function PinPad({
       <Animated.View
         style={[styles.dots, { transform: [{ translateX: shake }] }]}
         accessible
-        accessibilityLabel={`${pin.length} of ${length} digits entered`}>
+        accessibilityLabel={tr('{0} of {1} digits entered', [pin.length, length])}>
         {Array.from({ length }, (_, i) => (
           <View key={i} style={[styles.dot, { borderColor: t.primary, backgroundColor: i < pin.length ? t.primary : 'transparent' }]} />
         ))}
@@ -70,7 +78,7 @@ export function PinPad({
         <Key onPress={() => press('0')} label="0" disabled={disabled}>
           <AppText variant="title">0</AppText>
         </Key>
-        <Key onPress={() => setPin((p) => p.slice(0, -1))} label="Delete" disabled={!pin || busy} plain>
+        <Key onPress={() => setPin((p) => p.slice(0, -1))} label={tr('Delete')} disabled={!pin || busy} plain>
           <Ionicons name="backspace-outline" size={28} color={t.text} />
         </Key>
       </View>

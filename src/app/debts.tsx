@@ -11,6 +11,7 @@ import { parseAmount } from '@/lib/money';
 import { usePro } from '@/lib/pro';
 import { useMoney, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 const addDebt = () => router.push('/debt');
 
@@ -33,9 +34,9 @@ export default function DebtsScreen() {
   if (!isPro) {
     return (
       <ProScreen
-        screenTitle="Debt payoff"
-        title="Become debt-free faster"
-        message="BudT Pro builds a payoff plan for all your loans and cards, compares the avalanche and snowball methods and shows your debt-free date."
+        screenTitle={tr('Debt payoff')}
+        title={tr('Become debt-free faster')}
+        message={tr('BudT Pro builds a payoff plan for all your loans and cards, compares the avalanche and snowball methods and shows your debt-free date.')}
       />
     );
   }
@@ -51,24 +52,24 @@ export default function DebtsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Debt payoff', headerRight: () => <HeaderButton icon="add" label="Add debt" onPress={addDebt} /> }} />
+      <Stack.Screen options={{ title: tr('Debt payoff'), headerRight: () => <HeaderButton icon="add" label={tr('Add debt')} onPress={addDebt} /> }} />
       {debts.length === 0 ? (
         <Card>
           <EmptyState
             icon="card-outline"
-            title="No debts added"
-            message="Add your loans, cards and app loans to see the fastest, cheapest way to clear them."
-            action={{ label: 'Add a debt', onPress: addDebt }}
+            title={tr('No debts added')}
+            message={tr('Add your loans, cards and app loans to see the fastest, cheapest way to clear them.')}
+            action={{ label: tr('Add a debt'), onPress: addDebt }}
           />
         </Card>
       ) : (
         <>
           <Card>
-            <AppText variant="label">Total owed</AppText>
+            <AppText variant="label">{tr('Total owed')}</AppText>
             <AppText variant="title" color={t.expense}>
               {money(total)}
             </AppText>
-            <AppText variant="caption">Minimum payments: {money(minTotal)} a month</AppText>
+            <AppText variant="caption">{tr('Minimum payments: {0} a month', [money(minTotal)])}</AppText>
           </Card>
 
           <Card style={{ gap: 6 }}>
@@ -79,7 +80,7 @@ export default function DebtsScreen() {
                   icon="card"
                   iconColor={t.expense}
                   title={d.name}
-                  subtitle={`${d.apr}% a year · min ${money(d.min_payment)}/month`}
+                  subtitle={tr('{0}% a year · min {1}/month', [d.apr, money(d.min_payment)])}
                   right={<AppText weight="700">{money(d.balance)}</AppText>}
                   onPress={() => router.push({ pathname: '/debt', params: { id: String(d.id) } })}
                 />
@@ -88,66 +89,56 @@ export default function DebtsScreen() {
           </Card>
 
           <Card>
-            <AppText variant="heading">Your plan</AppText>
+            <AppText variant="heading">{tr('Your plan')}</AppText>
             <Field
-              label="Extra you can pay each month"
+              label={tr('Extra you can pay each month')}
               prefix={currency}
               value={extra}
               onChangeText={setExtra}
               keyboardType="decimal-pad"
               placeholder="0"
-              hint="On top of the minimums. Even a little extra saves months."
+              hint={tr('On top of the minimums. Even a little extra saves months.')}
             />
             <Segmented<Strategy>
               value={strategy}
               onChange={setStrategy}
               options={[
-                { value: 'avalanche', label: 'Avalanche' },
-                { value: 'snowball', label: 'Snowball' },
+                { value: 'avalanche', label: tr('Avalanche') },
+                { value: 'snowball', label: tr('Snowball') },
               ]}
             />
             <AppText variant="caption">
-              {strategy === 'avalanche'
-                ? 'Avalanche: extra money goes to the highest interest rate first. Saves the most interest.'
-                : 'Snowball: extra money goes to the smallest balance first. Quick wins keep you motivated.'}
+              {strategy === 'avalanche' ? tr('Avalanche: extra money goes to the highest interest rate first. Saves the most interest.') : tr('Snowball: extra money goes to the smallest balance first. Quick wins keep you motivated.')}
             </AppText>
             {!plan.feasible ? (
-              <AppText color={t.expense}>
-                These payments don’t cover the interest, so the debt keeps growing. Increase the minimums or add an extra payment.
-              </AppText>
+              <AppText color={t.expense}>{tr('These payments don’t cover the interest, so the debt keeps growing. Increase the minimums or add an extra payment.')}</AppText>
             ) : (
               <>
                 <View style={[styles.highlight, { backgroundColor: t.primarySoft }]}>
-                  <AppText variant="caption">Debt-free in</AppText>
-                  <AppText variant="title" color={t.primary}>
-                    {plan.months} month{plan.months === 1 ? '' : 's'}
-                  </AppText>
-                  <AppText variant="caption">around {monthsFromNow(plan.months)}</AppText>
+                  <AppText variant="caption">{tr('Debt-free in')}</AppText>
+                  <AppText variant="title" color={t.primary}>{tr('{0} month{1}', [plan.months, plan.months === 1 ? '' : 's'])}</AppText>
+                  <AppText variant="caption">{tr('around {0}', [monthsFromNow(plan.months)])}</AppText>
                 </View>
-                <StatLine label="Interest you’ll pay" value={money(plan.totalInterest)} />
+                <StatLine label={tr('Interest you’ll pay')} value={money(plan.totalInterest)} />
                 {mins.feasible && mins.totalInterest > plan.totalInterest && (
                   <StatLine
-                    label="Saved vs minimums only"
-                    value={`${money(mins.totalInterest - plan.totalInterest)} · ${mins.months - plan.months} months sooner`}
+                    label={tr('Saved vs minimums only')}
+                    value={tr('{0} · {1} months sooner', [money(mins.totalInterest - plan.totalInterest), mins.months - plan.months])}
                     color={t.income}
                   />
                 )}
                 {other.feasible && other.totalInterest !== plan.totalInterest && (
-                  <AppText variant="caption">
-                    {strategy === 'avalanche' ? 'Snowball' : 'Avalanche'} would take {other.months} months and cost {money(other.totalInterest)} in interest.
-                  </AppText>
+                  <AppText variant="caption">{tr('{0} would take {1} months and cost {2} in interest.', [strategy === 'avalanche' ? tr('Snowball') : tr('Avalanche'), other.months, money(other.totalInterest)])}</AppText>
                 )}
                 <Divider />
-                <AppText variant="label">Order to pay them off</AppText>
+                <AppText variant="label">{tr('Order to pay them off')}</AppText>
                 {plan.order.map((o, i) => (
                   <StatLine key={o.id} label={`${i + 1}. ${o.name}`} value={`cleared ${monthsFromNow(o.month)}`} />
                 ))}
               </>
             )}
           </Card>
-          <AppText variant="caption" style={{ textAlign: 'center' }}>
-            Estimates assume interest is charged monthly and rates stay the same.
-          </AppText>
+          <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Estimates assume interest is charged monthly and rates stay the same.')}</AppText>
         </>
       )}
     </Screen>

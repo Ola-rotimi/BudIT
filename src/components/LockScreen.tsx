@@ -5,6 +5,7 @@ import { biometricLabel, useSecurity } from '@/lib/security';
 import { useTheme } from '@/lib/theme';
 import { PinPad } from './PinPad';
 import { AppText } from './ui';
+import { tr } from '@/i18n';
 
 /**
  * Covers the whole app while it's locked, and hides it while it's in the background.
@@ -60,15 +61,15 @@ function LockedView() {
   const submit = async (pin: string) => {
     const result = await unlockWithPin(pin);
     if (result.ok) return true;
-    setMessage(result.attemptsLeft > 0 ? `Wrong PIN. ${result.attemptsLeft} attempt${result.attemptsLeft === 1 ? '' : 's'} left before a wait.` : 'Wrong PIN.');
+    setMessage(result.attemptsLeft > 0 ? tr('Wrong PIN. {0} attempt{1} left before a wait.', [result.attemptsLeft, result.attemptsLeft === 1 ? '' : 's']) : tr('Wrong PIN.'));
     return false;
   };
 
   const forgot = async () => {
     if (await unlockWithDeviceCredentials()) return;
     Alert.alert(
-      'Can’t unlock',
-      'BudT can be unlocked with your PIN, or with your phone’s own passcode or biometrics. If none of these work, reinstalling BudT erases its data, and you can then restore a backup.',
+      tr('Can’t unlock'),
+      tr('BudT can be unlocked with your PIN, or with your phone’s own passcode or biometrics. If none of these work, reinstalling BudT erases its data, and you can then restore a backup.'),
     );
   };
 
@@ -78,9 +79,9 @@ function LockedView() {
     <SafeAreaView style={[styles.locked, { backgroundColor: t.bg }]}>
       <View style={{ alignItems: 'center', gap: 10 }}>
         <Image source={require('../../assets/icon.png')} style={styles.iconSmall} accessibilityIgnoresInvertColors />
-        <AppText variant="heading">Enter your BudT PIN</AppText>
+        <AppText variant="heading">{tr('Enter your BudT PIN')}</AppText>
         <AppText variant="caption" color={waiting || message ? t.expense : t.muted} style={{ textAlign: 'center' }}>
-          {waiting ? `Too many attempts. Try again in ${seconds >= 60 ? `${Math.ceil(seconds / 60)} min` : `${seconds}s`}.` : (message ?? ' ')}
+          {waiting ? tr('Too many attempts. Try again in {0}.', [seconds >= 60 ? tr('{0} min', [Math.ceil(seconds / 60)]) : `${seconds}s`]) : (message ?? ' ')}
         </AppText>
       </View>
       <PinPad
@@ -90,14 +91,12 @@ function LockedView() {
         disabled={waiting}
         extraKey={
           canBiometric
-            ? { icon: biometricKind === 'face' ? 'scan-outline' : 'finger-print', label: `Unlock with ${biometricLabel(biometricKind)}`, onPress: unlockWithBiometrics }
+            ? { icon: biometricKind === 'face' ? 'scan-outline' : 'finger-print', label: tr('Unlock with {0}', [biometricLabel(biometricKind)]), onPress: unlockWithBiometrics }
             : undefined
         }
       />
       <Pressable onPress={forgot} hitSlop={10} accessibilityRole="button">
-        <AppText weight="600" color={t.primary}>
-          Forgot PIN?
-        </AppText>
+        <AppText weight="600" color={t.primary}>{tr('Forgot PIN?')}</AppText>
       </Pressable>
     </SafeAreaView>
   );

@@ -4,6 +4,7 @@ import { View, type ColorValue } from 'react-native';
 import { HeaderButton } from '@/components/ui';
 import type { IconName } from '@/db/types';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 const tabIcon = (name: IconName) =>
   function TabIcon({ color, size }: { color: ColorValue; size: number }) {
@@ -23,21 +24,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerTitle: 'BudT',
+          title: tr('Home'),
+          headerTitle: tr('BudT'),
           tabBarIcon: tabIcon('home'),
-          headerRight: () => <HeaderButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} />,
+          headerRight: () => <HeaderButton icon="settings-outline" label={tr('Settings')} onPress={() => router.push('/settings')} />,
         }}
       />
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
+          title: tr('Budgets'),
           tabBarIcon: tabIcon('pie-chart'),
           headerRight: () => (
             <View style={{ flexDirection: 'row' }}>
-              <HeaderButton icon="sparkles-outline" label="Smart budget" onPress={() => router.push('/smart-budget')} />
-              <HeaderButton icon="add" label="Add budget" onPress={() => router.push('/budget')} />
+              <HeaderButton icon="sparkles-outline" label={tr('Smart budget')} onPress={() => router.push('/smart-budget')} />
+              <HeaderButton icon="add" label={tr('Add budget')} onPress={() => router.push('/budget')} />
             </View>
           ),
         }}
@@ -45,17 +46,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tax"
         options={{
-          title: 'Tax',
-          headerTitle: 'Tax calculator',
+          title: tr('Tax'),
+          headerTitle: tr('Tax calculator'),
           tabBarIcon: tabIcon('calculator'),
-          headerRight: () => <HeaderButton icon="document-text-outline" label="Annual summary" onPress={() => router.push('/tax-summary')} />,
+          headerRight: () => <HeaderButton icon="document-text-outline" label={tr('Annual summary')} onPress={() => router.push('/tax-summary')} />,
         }}
       />
       <Tabs.Screen
         name="pension"
-        options={{ title: 'Pension', headerTitle: 'Pension planner', tabBarIcon: tabIcon('umbrella') }}
+        options={{ title: tr('Pension'), headerTitle: tr('Pension planner'), tabBarIcon: tabIcon('umbrella') }}
       />
-      <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: tabIcon('grid') }} />
+      <Tabs.Screen name="more" options={{ title: tr('More'), tabBarIcon: tabIcon('grid') }} />
     </Tabs>
   );
 }

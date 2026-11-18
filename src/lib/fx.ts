@@ -9,6 +9,7 @@
 import { useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { todayISO } from './dates';
+import { tr, N_ } from '@/i18n';
 
 const API = 'https://api.frankfurter.dev/v2';
 /** Re-fetch a cached rate after this long. Central banks publish at most once a day. */
@@ -29,7 +30,7 @@ export const FX_CURRENCIES: Record<string, { name: string; flag: string; source:
       type: 'bank',
       provider: 'bdi',
       bank: 'Banca d’Italia',
-      note: 'The Bank of Ghana doesn’t publish a machine-readable feed, so this uses the official reference rate published by Italy’s central bank.',
+      note: N_('The Bank of Ghana doesn’t publish a machine-readable feed, so this uses the official reference rate published by Italy’s central bank.'),
     },
   },
   KES: { name: 'Kenyan shilling', flag: '🇰🇪', source: { type: 'bank', provider: 'cbk', bank: 'Central Bank of Kenya' } },
@@ -42,7 +43,7 @@ export const FX_CURRENCIES: Record<string, { name: string; flag: string; source:
       type: 'bank',
       provider: 'cbk',
       bank: 'Central Bank of Kenya',
-      note: 'The Bank of Uganda doesn’t publish a machine-readable feed, so this uses the official rate published by the Central Bank of Kenya.',
+      note: N_('The Bank of Uganda doesn’t publish a machine-readable feed, so this uses the official rate published by the Central Bank of Kenya.'),
     },
   },
   TZS: { name: 'Tanzanian shilling', flag: '🇹🇿', source: { type: 'bank', provider: 'bota', bank: 'Bank of Tanzania' } },
@@ -69,7 +70,7 @@ export const FX_CURRENCIES: Record<string, { name: string; flag: string; source:
   NZD: {
     name: 'New Zealand dollar',
     flag: '🇳🇿',
-    source: { type: 'bank', provider: 'ecb', bank: 'European Central Bank', note: 'Reserve Bank of New Zealand rates aren’t available, so the ECB reference rate is used.' },
+    source: { type: 'bank', provider: 'ecb', bank: 'European Central Bank', note: N_('Reserve Bank of New Zealand rates aren’t available, so the ECB reference rate is used.') },
   },
   INR: { name: 'Indian rupee', flag: '🇮🇳', source: { type: 'bank', provider: 'fbil', bank: 'FBIL (RBI reference rate)' } },
   JPY: { name: 'Japanese yen', flag: '🇯🇵', source: { type: 'bank', provider: 'boj', bank: 'Bank of Japan' } },
@@ -77,7 +78,7 @@ export const FX_CURRENCIES: Record<string, { name: string; flag: string; source:
   CHF: {
     name: 'Swiss franc',
     flag: '🇨🇭',
-    source: { type: 'bank', provider: 'ecb', bank: 'European Central Bank', note: 'Swiss National Bank rates aren’t available, so the ECB reference rate is used.' },
+    source: { type: 'bank', provider: 'ecb', bank: 'European Central Bank', note: N_('Swiss National Bank rates aren’t available, so the ECB reference rate is used.') },
   },
   SEK: { name: 'Swedish krona', flag: '🇸🇪', source: { type: 'bank', provider: 'rb', bank: 'Sveriges Riksbank' } },
   NOK: { name: 'Norwegian krone', flag: '🇳🇴', source: { type: 'bank', provider: 'nb', bank: 'Norges Bank' } },
@@ -94,7 +95,7 @@ export const FX_CURRENCIES: Record<string, { name: string; flag: string; source:
       type: 'bank',
       provider: 'ecb',
       bank: 'European Central Bank',
-      note: 'The HKMA feed is only updated monthly, so the ECB’s daily reference rate is used. The HKD is pegged between 7.75 and 7.85 per US dollar.',
+      note: N_('The HKMA feed is only updated monthly, so the ECB’s daily reference rate is used. The HKD is pegged between 7.75 and 7.85 per US dollar.'),
     },
   },
   PHP: { name: 'Philippine peso', flag: '🇵🇭', source: { type: 'bank', provider: 'bsp', bank: 'Bangko Sentral ng Pilipinas' } },
@@ -115,10 +116,10 @@ export type FxQuote = {
 /** Human-readable description of where a currency's rate comes from. */
 export function describeSource(currency: string) {
   const s = FX_CURRENCIES[currency]?.source;
-  if (!s) return { label: 'No official source', note: undefined };
-  if (s.type === 'pivot') return { label: 'Base currency for all conversions', note: undefined };
+  if (!s) return { label: tr('No official source'), note: undefined };
+  if (s.type === 'pivot') return { label: tr('Base currency for all conversions'), note: undefined };
   if (s.type === 'peg') return { label: s.authority, note: undefined };
-  return { label: `${s.bank}: official rate`, note: s.note };
+  return { label: tr('{0}: official rate', [s.bank]), note: s.note && tr(s.note) };
 }
 
 async function fetchJson<T>(url: string): Promise<T> {

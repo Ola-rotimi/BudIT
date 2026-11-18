@@ -6,6 +6,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
+import { tr } from '@/i18n';
 
 /** All wallets with their balances. Tapping one shows its activity. */
 export default function AccountsScreen() {
@@ -19,14 +20,14 @@ export default function AccountsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Accounts', headerRight: () => <HeaderButton icon="add" label="Add account" onPress={() => router.push('/account')} /> }} />
+      <Stack.Screen options={{ title: tr('Accounts'), headerRight: () => <HeaderButton icon="add" label={tr('Add account')} onPress={() => router.push('/account')} /> }} />
       <Card>
-        <AppText variant="label">Total across {accounts.length} account{accounts.length === 1 ? '' : 's'}</AppText>
+        <AppText variant="label">{tr('Total across {0} account{1}', [accounts.length, accounts.length === 1 ? '' : 's'])}</AppText>
         <AppText variant="title" color={total < 0 ? t.expense : undefined}>
           {money(total)}
         </AppText>
-        {owed < 0 && <AppText variant="caption">Includes {money(-owed)} owed on cards or loans.</AppText>}
-        <Button title="Transfer between accounts" icon="swap-horizontal" variant="secondary" onPress={() => router.push('/transfer')} disabled={accounts.length < 2} />
+        {owed < 0 && <AppText variant="caption">{tr('Includes {0} owed on cards or loans.', [money(-owed)])}</AppText>}
+        <Button title={tr('Transfer between accounts')} icon="swap-horizontal" variant="secondary" onPress={() => router.push('/transfer')} disabled={accounts.length < 2} />
       </Card>
 
       <Card style={{ gap: 6 }}>
@@ -37,7 +38,7 @@ export default function AccountsScreen() {
               icon={a.icon}
               iconColor={a.color}
               title={a.name}
-              subtitle={ACCOUNT_KINDS[a.kind]?.label ?? 'Account'}
+              subtitle={ACCOUNT_KINDS[a.kind] ? tr(ACCOUNT_KINDS[a.kind].label) : tr('Account')}
               right={
                 <AppText weight="700" color={a.balance < 0 ? t.expense : undefined}>
                   {money(a.balance)}
@@ -52,16 +53,16 @@ export default function AccountsScreen() {
       <Card style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => router.push('/import')}>
         <IconBadge icon="download-outline" color={t.primary} />
         <View style={{ flex: 1 }}>
-          <AppText weight="700">Import a statement</AppText>
-          <AppText variant="caption">Bring in transactions from your bank or mobile-money app (CSV).</AppText>
+          <AppText weight="700">{tr('Import a statement')}</AppText>
+          <AppText variant="caption">{tr('Bring in transactions from your bank or mobile-money app (CSV).')}</AppText>
         </View>
       </Card>
 
       <Card style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => router.push('/account')}>
         <IconBadge icon="add" color={t.primary} />
         <View style={{ flex: 1 }}>
-          <AppText weight="700">Add an account</AppText>
-          <AppText variant="caption">Cash, bank, mobile money (M-Pesa, MoMo, OPay…), cards or savings.</AppText>
+          <AppText weight="700">{tr('Add an account')}</AppText>
+          <AppText variant="caption">{tr('Cash, bank, mobile money (M-Pesa, MoMo, OPay…), cards or savings.')}</AppText>
         </View>
       </Card>
     </Screen>

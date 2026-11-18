@@ -1,6 +1,7 @@
 /** Serialises the whole database to a plain object and restores it. Used by backup/restore. */
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { notifyChange } from './events';
+import { tr } from '@/i18n';
 
 /** 2 added accounts, transfers and recurring rules; 3 added debts and savings groups. Older backups still restore. */
 export const SNAPSHOT_FORMAT = 3;
@@ -48,14 +49,14 @@ export async function exportSnapshot(db: SQLiteDatabase): Promise<Snapshot> {
 /** Checks that parsed JSON is a BudT snapshot this version can restore. */
 export function validateSnapshot(parsed: unknown): Snapshot {
   const s = parsed as Partial<Snapshot> | null;
-  if (s?.app !== 'BudT' || typeof s.tables !== 'object' || !s.tables) throw new SnapshotError('That file isn’t a BudT backup.');
+  if (s?.app !== 'BudT' || typeof s.tables !== 'object' || !s.tables) throw new SnapshotError(tr('That file isn’t a BudT backup.'));
   if ((s.format ?? 0) > SNAPSHOT_FORMAT) {
-    throw new SnapshotError('This backup was made by a newer version of BudT. Update the app and try again.');
+    throw new SnapshotError(tr('This backup was made by a newer version of BudT. Update the app and try again.'));
   }
   const tables = { ...s.tables } as Record<TableName, Row[]>;
   for (const [name] of entries()) {
     if (tables[name] === undefined && (s.format ?? 1) < (ADDED_IN[name] ?? 0)) tables[name] = [];
-    if (!Array.isArray(tables[name])) throw new SnapshotError('This backup is incomplete or damaged.');
+    if (!Array.isArray(tables[name])) throw new SnapshotError(tr('This backup is incomplete or damaged.'));
   }
   return { ...s, tables } as Snapshot;
 }
@@ -86,7 +87,7 @@ export async function importSnapshot(db: SQLiteDatabase, snapshot: Snapshot) {
       await db.runAsync('UPDATE transactions SET account_id = (SELECT id FROM accounts ORDER BY archived, id LIMIT 1) WHERE account_id IS NULL');
     });
   } catch {
-    throw new SnapshotError('This backup is damaged and couldn’t be restored. Your existing data hasn’t been changed.');
+    throw new SnapshotError(tr('This backup is damaged and couldn’t be restored. Your existing data hasn’t been changed.'));
   }
   notifyChange();
 }
