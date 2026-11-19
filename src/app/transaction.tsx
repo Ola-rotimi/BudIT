@@ -135,7 +135,7 @@ export default function TransactionScreen() {
           placeholderTextColor={t.muted}
           keyboardType="decimal-pad"
           autoFocus={!id}
-          style={[styles.amountInput, { color: accent }]}
+          style={[styles.amountInput, { color: accent, fontSize: amountFontSize(groupDigits(amount)) }]}
           accessibilityLabel={tr('Amount')}
         />
         {entryCurrency !== currency && (
@@ -189,7 +189,26 @@ export default function TransactionScreen() {
   );
 }
 
+/** Big digits for everyday amounts, stepping down so long ones (₦1,500,000.00) still fit on a narrow phone. */
+function amountFontSize(shown: string) {
+  if (shown.length <= 9) return 40;
+  if (shown.length <= 12) return 34;
+  return 28;
+}
+
 const styles = StyleSheet.create({
   amountBox: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16, alignItems: 'center', gap: 4 },
-  amountInput: { fontSize: 40, fontWeight: '800', textAlign: 'center', minWidth: 160, fontVariant: ['tabular-nums'] },
+  // Full width with a fixed height: Android doesn't grow a centred, content-sized TextInput as you
+  // type, and its extra font padding clips large digits.
+  amountInput: {
+    alignSelf: 'stretch',
+    height: 64,
+    paddingVertical: 0,
+    paddingHorizontal: 8,
+    fontWeight: '800',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
 });

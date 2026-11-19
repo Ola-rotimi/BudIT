@@ -1,5 +1,6 @@
 /**
- * Free-plan allowances. Free users can try goals, bills and savings groups; Pro removes the limits.
+ * Free-plan allowances. Free users can try goals, bills, savings groups, IOUs and challenges; Pro
+ * removes the limits.
  * Existing items always stay usable (e.g. after a subscription lapses); only adding more is gated.
  */
 import { router, type Href } from 'expo-router';
@@ -9,7 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { usePro } from './pro';
 import { tr, N_ } from '@/i18n';
 
-export const FREE_LIMITS = { goals: 1, bills: 3, groups: 1 } as const;
+export const FREE_LIMITS = { goals: 1, bills: 3, groups: 1, ious: 3, challenges: 1 } as const;
 export type LimitedFeature = keyof typeof FREE_LIMITS;
 
 export const LIMIT_COPY: Record<LimitedFeature, { noun: (n: number) => string; title: string; message: string }> = {
@@ -28,12 +29,25 @@ export const LIMIT_COPY: Record<LimitedFeature, { noun: (n: number) => string; t
     title: N_('Track every group you’re in'),
     message: N_('BudIT Pro tracks unlimited ajo, esusu, susu, chama and stokvel groups, with every contribution and payout.'),
   },
+  ious: {
+    noun: (n) => (n === 1 ? tr('open IOU') : tr('open IOUs')),
+    title: N_('Keep track of everyone'),
+    message: N_('BudIT Pro tracks unlimited IOUs and split bills, so you always know who owes what.'),
+  },
+  challenges: {
+    noun: (n) => (n === 1 ? tr('running challenge') : tr('running challenges')),
+    title: N_('Take on more challenges'),
+    message: N_('BudIT Pro lets you run several challenges at once, like a no-spend week and a food cap together.'),
+  },
 };
 
 const COUNT_SQL: Record<LimitedFeature, string> = {
   goals: 'SELECT count(*) AS n FROM goals',
   bills: 'SELECT count(*) AS n FROM bills WHERE active = 1',
   groups: 'SELECT count(*) AS n FROM savings_groups WHERE active = 1',
+  // Settled IOUs and finished challenges don't count.
+  ious: 'SELECT count(*) AS n FROM ious WHERE repaid < amount',
+  challenges: "SELECT count(*) AS n FROM challenges WHERE active = 1 AND end_date >= date('now', 'localtime')",
 };
 
 async function countOf(db: SQLiteDatabase, feature: LimitedFeature) {

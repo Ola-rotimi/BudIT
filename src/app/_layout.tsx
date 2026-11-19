@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Alert, useColorScheme } from 'react-native';
 import { BackgroundJobs } from '@/components/BackgroundJobs';
+import { KeyboardProvider } from '@/components/Keyboard';
 import { LockScreen } from '@/components/LockScreen';
 import { ReauthProvider } from '@/components/Reauth';
 import { SecurityChecks } from '@/components/SecurityChecks';
@@ -34,26 +35,28 @@ export default function RootLayout() {
   };
 
   return (
-    <SecurityProvider>
-      <DatabaseGate>
-        <SettingsProvider>
-          <ProProvider>
-            <LanguageRoot>
-              <ThemeProvider value={navTheme}>
-                <ReauthProvider>
-                  <StatusBar style="auto" />
-                  <BackgroundJobs />
-                  <SecurityChecks />
-                  <RootStack />
-                  <ScreenshotNotice />
-                </ReauthProvider>
-              </ThemeProvider>
-            </LanguageRoot>
-          </ProProvider>
-        </SettingsProvider>
-      </DatabaseGate>
-      <LockScreen />
-    </SecurityProvider>
+    <KeyboardProvider>
+      <SecurityProvider>
+        <DatabaseGate>
+          <SettingsProvider>
+            <ProProvider>
+              <LanguageRoot>
+                <ThemeProvider value={navTheme}>
+                  <ReauthProvider>
+                    <StatusBar style="auto" />
+                    <BackgroundJobs />
+                    <SecurityChecks />
+                    <RootStack />
+                    <ScreenshotNotice />
+                  </ReauthProvider>
+                </ThemeProvider>
+              </LanguageRoot>
+            </ProProvider>
+          </SettingsProvider>
+        </DatabaseGate>
+        <LockScreen />
+      </SecurityProvider>
+    </KeyboardProvider>
   );
 }
 

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,20 +13,20 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { IconName } from '@/db/types';
+import { KeyboardScrollView } from './Keyboard';
 import { groupDigits } from '@/lib/money';
 import { useTheme } from '@/lib/theme';
 
 export function Screen({ children, contentStyle }: { children: ReactNode; contentStyle?: StyleProp<ViewStyle> }) {
   const t = useTheme();
   return (
-    <ScrollView
+    <KeyboardScrollView
       style={{ flex: 1, backgroundColor: t.bg }}
       contentContainerStyle={[styles.screen, contentStyle]}
       contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled">
       {children}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 
@@ -103,7 +102,10 @@ export function Button({
         style,
       ]}>
       {icon && <Ionicons name={icon} size={18} color={fg} />}
-      <Text style={[styles.buttonText, { color: fg }]}>{title}</Text>
+      {/* Shrinks before breaking words when two buttons share a row; long titles wrap between words. */}
+      <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.buttonText, { color: fg }]}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -174,7 +176,10 @@ export function Segmented<T extends string>({
             accessibilityState={{ selected: active }}
             onPress={() => onChange(o.value)}
             style={[styles.segment, active && { backgroundColor: t.card, ...styles.segmentActive }]}>
-            <Text style={[styles.segmentText, { color: active ? t.text : t.muted }]}>{o.label}</Text>
+            {/* One line, shrinking a little rather than splitting a word ("Month-ly") on narrow phones. */}
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.segmentText, { color: active ? t.text : t.muted }]}>
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -317,7 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonText: { fontSize: 16, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   headerButton: { paddingHorizontal: 8 },
   field: { gap: 6 },
   inputWrap: {
@@ -330,7 +335,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, minHeight: 46, fontSize: 16 },
   segmented: { flexDirection: 'row', borderRadius: 12, padding: 3, borderWidth: StyleSheet.hairlineWidth },
-  segment: { flex: 1, minHeight: 36, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  segment: { flex: 1, minHeight: 36, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   segmentActive: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segmentText: { fontSize: 14, fontWeight: '600' },
   badge: { alignItems: 'center', justifyContent: 'center' },

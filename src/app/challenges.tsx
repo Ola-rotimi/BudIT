@@ -1,13 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, StyleSheet, View } from 'react-native';
+import { LimitNote } from '@/components/ProLock';
 import { AppText, Button, Card, EmptyState, HeaderButton, Loading, ProgressBar, Screen } from '@/components/ui';
 import { dailySpending, listChallenges, removeChallenge, spendDays } from '@/db/planning';
 import { useQuery } from '@/hooks/useQuery';
 import { tr } from '@/i18n';
 import { challengeProgress, noSpendStreak, type ChallengeProgress } from '@/lib/challenges';
 import { fromISODate, shortDate, todayISO } from '@/lib/dates';
+import { useFreeLimit } from '@/lib/limits';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
@@ -17,6 +19,7 @@ export default function ChallengesScreen() {
   const db = useSQLiteContext();
   const { money } = useMoney();
   const today = todayISO();
+  const limit = useFreeLimit('challenges');
   const data = useQuery(`challenges:${today}`, async (d) => {
     const [list, spent] = await Promise.all([listChallenges(d), spendDays(d, today)]);
     const withProgress = await Promise.all(
@@ -28,7 +31,7 @@ export default function ChallengesScreen() {
   if (!data) return <Loading />;
   const current = data.items.filter((i) => i.c.end_date >= today);
   const past = data.items.filter((i) => i.c.end_date < today);
-  const start = () => router.push('/challenge');
+  const start = () => limit.add('/challenge');
 
   const remove = (id: number) =>
     Alert.alert(tr('Remove this challenge?'), tr('Your transactions aren’t affected.'), [
@@ -95,6 +98,7 @@ export default function ChallengesScreen() {
       )}
 
       {current.length > 0 && <Button title={tr('Start another challenge')} icon="add" variant="secondary" onPress={start} />}
+      {!limit.isPro && limit.used !== undefined && <LimitNote feature="challenges" used={limit.used} />}
 
       {past.length > 0 && (
         <Card style={{ gap: 8 }}>

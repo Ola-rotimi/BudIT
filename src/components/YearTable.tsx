@@ -22,7 +22,7 @@ export function YearTable({ columns, rows, initial = 5 }: { columns: Column[]; r
     <View>
       <View style={[styles.row, styles.header, { borderBottomColor: t.border }]}>
         {columns.map((c, i) => (
-          <AppText key={c.label} variant="caption" weight="600" numberOfLines={2} style={[i === 0 ? styles.first : styles.cell]}>
+          <AppText key={c.label} variant="caption" weight="600" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={[i === 0 ? styles.first : styles.cell]}>
             {c.label}
           </AppText>
         ))}

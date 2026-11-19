@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/lib/theme';
 import { AppText, Button, Field } from './ui';
 import { tr } from '@/i18n';
@@ -59,7 +59,7 @@ function PromptBody({ mode, title, message, onSubmit, onCancel, secondary }: Omi
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.backdrop}>
+    <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
       <View style={[styles.sheet, { backgroundColor: t.card }]}>
         <AppText variant="heading">{title}</AppText>
         <AppText variant="caption">{message}</AppText>

@@ -64,6 +64,11 @@ export function BackgroundJobs() {
       }, SYNC_DELAY_MS);
     };
     const refreshWidget = async () => {
+      // The home-screen widget is a Pro feature.
+      if (!isPro) {
+        updateWidget({ title: tr('Safe to spend'), amount: '•••••', detail: tr('Unlock this widget with BudIT Pro'), negative: false });
+        return;
+      }
       if (!showAmounts) {
         updateWidget({ title: tr('Safe to spend'), amount: '•••••', detail: tr('Open BudIT to see your figures'), negative: false });
         return;

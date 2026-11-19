@@ -2,21 +2,24 @@ import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { BarChart, Legend } from '@/components/charts';
 import { HideAmountsButton } from '@/components/HideAmountsButton';
+import { ProLock } from '@/components/ProLock';
 import { AppText, Card, Divider, Loading, Screen, StatLine } from '@/components/ui';
 import { YearTable } from '@/components/YearTable';
 import { backfillNetWorth, netWorthHistory, netWorthNow, recordNetWorth } from '@/db/planning';
 import { useQuery } from '@/hooks/useQuery';
 import { tr } from '@/i18n';
 import { monthLabel } from '@/lib/dates';
+import { usePro } from '@/lib/pro';
 import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
-/** Everything you own minus everything you owe, now and month by month. */
+/** Everything you own minus everything you owe, now (free) and month by month (Pro). */
 export default function NetWorthScreen() {
   const t = useTheme();
   const { money } = useMoney();
   const { safeMode } = useSecurity();
+  const { isPro } = usePro();
   const data = useQuery('net-worth', async (db) => {
     // Keep this month's figure current and fill in earlier months the first time.
     await recordNetWorth(db);
@@ -63,7 +66,9 @@ export default function NetWorthScreen() {
         )}
       </Card>
 
-      {history.length > 1 && (
+      {!isPro ? (
+        <ProLock title={tr('Watch your net worth grow')} message={tr('BudIT Pro shows your net worth month by month, with what you own and owe over the last year.')} />
+      ) : history.length > 1 && (
         <Card>
           <AppText variant="heading">{tr('Month by month')}</AppText>
           <BarChart

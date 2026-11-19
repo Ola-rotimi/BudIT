@@ -1,14 +1,16 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, Switch, Text, View } from 'react-native';
 import { ColorPicker } from '@/components/pickers';
+import { ProBadge } from '@/components/ProLock';
 import { AppText, Button, Field, HeaderDeleteButton, Screen, Segmented } from '@/components/ui';
 import { accountHasActivity, getAccount, removeAccount, saveAccount } from '@/db/queries';
 import type { AccountKind } from '@/db/types';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
 import { FX_CURRENCIES } from '@/lib/fx';
 import { centsToInput, CURRENCIES, parseAmount } from '@/lib/money';
+import { usePro } from '@/lib/pro';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -21,6 +23,7 @@ export default function AccountScreen() {
   const db = useSQLiteContext();
   const t = useTheme();
   const { currency } = useSettings();
+  const { isPro } = usePro();
 
   const [name, setName] = useState('');
   const [kind, setKind] = useState<AccountKind>('bank');
@@ -93,7 +96,12 @@ export default function AccountScreen() {
       <View style={{ gap: 8 }}>
         <AppText variant="label">{tr('Currency')}</AppText>
         <Pressable
-          onPress={() => !currencyLocked && setPickCurrency((p) => !p)}
+          onPress={() => {
+            if (currencyLocked) return;
+            // Other currencies are Pro. An account already in one stays usable if Pro lapses.
+            if (!isPro && accountCurrency === currency) return router.push('/paywall');
+            setPickCurrency((p) => !p);
+          }}
           disabled={currencyLocked}
           accessibilityRole="button"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
@@ -106,10 +114,13 @@ export default function AccountScreen() {
               {currencyLocked
                 ? tr('Can’t be changed once the account has transactions.')
                 : accountCurrency === currency
-                  ? tr('Your home currency. Tap to choose another, e.g. for a USD domiciliary account.')
+                  ? isPro
+                    ? tr('Your home currency. Tap to choose another, e.g. for a USD domiciliary account.')
+                    : tr('Your home currency. BudIT Pro adds accounts in other currencies, e.g. a USD domiciliary account.')
                   : tr('Totals and budgets convert it to {0} at the official rate.', [currency])}
             </AppText>
           </View>
+          {!isPro && !currencyLocked && accountCurrency === currency && <ProBadge />}
         </Pressable>
         {pickCurrency && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

@@ -2,11 +2,13 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { HideAmountsButton } from '@/components/HideAmountsButton';
+import { LimitNote } from '@/components/ProLock';
 import { AppText, Button, Card, Divider, EmptyState, HeaderButton, ListRow, Loading, Screen, Segmented } from '@/components/ui';
 import { iouTotals, listIous, type IouRow } from '@/db/planning';
 import { useQuery } from '@/hooks/useQuery';
 import { tr } from '@/i18n';
 import { daysBetween, shortDate, todayISO } from '@/lib/dates';
+import { useFreeLimit } from '@/lib/limits';
 import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
@@ -19,6 +21,7 @@ export default function IousScreen() {
   const { money } = useMoney();
   const { safeMode } = useSecurity();
   const [view, setView] = useState<View_>('open');
+  const limit = useFreeLimit('ious');
   const data = useQuery(`ious:${view}`, async (db) => {
     const [rows, totals] = await Promise.all([listIous(db, view === 'settled'), iouTotals(db)]);
     return { rows: view === 'settled' ? rows.filter((r) => r.outstanding <= 0) : rows, totals };
@@ -33,7 +36,7 @@ export default function IousScreen() {
   const byPerson = new Map<string, IouRow[]>();
   for (const r of rows) byPerson.set(r.person, [...(byPerson.get(r.person) ?? []), r]);
 
-  const add = (mode: 'lend' | 'borrow' | 'split') => router.push({ pathname: '/iou', params: { mode } });
+  const add = (mode: 'lend' | 'borrow' | 'split') => limit.add({ pathname: '/iou', params: { mode } });
 
   return (
     <Screen>
@@ -68,6 +71,7 @@ export default function IousScreen() {
           <Button title={tr('I borrowed')} icon="arrow-down-circle-outline" variant="secondary" onPress={() => add('borrow')} style={{ flex: 1 }} />
         </View>
         <Button title={tr('Split a bill')} icon="people-outline" variant="secondary" onPress={() => add('split')} />
+        {!limit.isPro && limit.used !== undefined && <LimitNote feature="ious" used={limit.used} />}
       </Card>
 
       <Segmented<View_>
