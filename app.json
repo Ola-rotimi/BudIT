@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.budit.app",
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "infoPlist": {}
     },
     "android": {
       "package": "com.budit.app",
@@ -27,6 +28,10 @@
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES"
+      ],
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -107,9 +112,26 @@
         }
       },
       "eas": {
-        "projectId": "c87b2d99-2959-49fe-8377-58bbd5a5f982"
+        "projectId": "c42bbe4e-3800-4c78-bf05-b162a59baf2f",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "ExpoWidgetsTarget",
+                  "bundleIdentifier": "com.budit.app.ExpoWidgetsTarget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.budit.app"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     },
-    "owner": "ola-rotimis-team"
+    "owner": "ola-rotimi"
   }
 }
