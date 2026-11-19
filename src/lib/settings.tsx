@@ -32,7 +32,7 @@ type Settings = {
   /** Day of the month budget periods start (1 = calendar months; e.g. 25 for a payday on the 25th). */
   monthStartDay: number;
   setMonthStartDay: (day: number) => Promise<void>;
-  /** 'system' follows the phone's language (when BudT has it). */
+  /** 'system' follows the phone's language (when BudIT has it). */
   language: LanguagePreference;
   setLanguage: (lang: LanguagePreference) => Promise<void>;
   /** Re-reads every setting from the database, e.g. after restoring a backup. */

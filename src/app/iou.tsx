@@ -78,7 +78,7 @@ export default function IouScreen() {
       try {
         await splitBill(db, { total: cents, people: names, includeMe, note: note.trim(), date, accountId: paidFromAccount ? accountId : null, categoryId });
       } catch (e) {
-        if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudT can get the official rate, then try again.'));
+        if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudIT can get the official rate, then try again.'));
         throw e;
       }
       return goBack();
@@ -97,7 +97,7 @@ export default function IouScreen() {
     try {
       await recordRepayment(db, existing, cents, recordInAccount ? accountId : null);
     } catch (e) {
-      if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudT can get the official rate, then try again.'));
+      if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudIT can get the official rate, then try again.'));
       throw e;
     }
     goBack();

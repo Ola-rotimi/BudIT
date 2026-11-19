@@ -36,13 +36,13 @@ export default function RecurringScreen() {
           <EmptyState
             icon="repeat"
             title={tr('Nothing recurring yet')}
-            message={tr('When you add a transaction, choose Repeat (weekly, monthly or yearly) and BudT will record it for you on each date: salary, rent, subscriptions and more.')}
+            message={tr('When you add a transaction, choose Repeat (weekly, monthly or yearly) and BudIT will record it for you on each date: salary, rent, subscriptions and more.')}
             action={{ label: tr('Add a transaction'), onPress: addNew }}
           />
         </Card>
       ) : (
         <>
-          <AppText variant="caption">{tr('BudT adds these automatically when they’re due, even if you haven’t opened the app for a while.')}</AppText>
+          <AppText variant="caption">{tr('BudIT adds these automatically when they’re due, even if you haven’t opened the app for a while.')}</AppText>
           <Card style={{ gap: 6 }}>
             {rules.map((r, i) => (
               <View key={r.id}>
@@ -62,7 +62,7 @@ function RuleRow({ rule: r }: { rule: RecurringRow }) {
   const db = useSQLiteContext();
   const { money } = useMoney();
   const stop = () =>
-    Alert.alert(tr('Stop this recurring entry?'), tr('BudT won’t add “{0}” any more. Entries already added are kept.', [r.note || tr(r.category_name)]), [
+    Alert.alert(tr('Stop this recurring entry?'), tr('BudIT won’t add “{0}” any more. Entries already added are kept.', [r.note || tr(r.category_name)]), [
       { text: tr('Cancel'), style: 'cancel' },
       { text: tr('Stop'), style: 'destructive', onPress: () => stopRecurring(db, r.id) },
     ]);

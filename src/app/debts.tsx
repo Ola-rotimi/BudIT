@@ -42,7 +42,7 @@ export default function DebtsScreen() {
       <ProScreen
         screenTitle={tr('Debt payoff')}
         title={tr('Become debt-free faster')}
-        message={tr('BudT Pro builds a payoff plan for all your loans and cards, compares the avalanche and snowball methods and shows your debt-free date.')}
+        message={tr('BudIT Pro builds a payoff plan for all your loans and cards, compares the avalanche and snowball methods and shows your debt-free date.')}
       />
     );
   }

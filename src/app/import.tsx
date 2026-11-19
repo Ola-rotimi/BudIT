@@ -60,7 +60,7 @@ export default function ImportScreen() {
       <ProScreen
         screenTitle={tr('Import statement')}
         title={tr('Import your bank statements')}
-        message={tr('BudT Pro reads CSV statements from your bank or mobile-money app, sorts each line into a category and skips anything already recorded.')}
+        message={tr('BudIT Pro reads CSV statements from your bank or mobile-money app, sorts each line into a category and skips anything already recorded.')}
       />
     );
   }
@@ -75,7 +75,7 @@ export default function ImportScreen() {
       if (!detected) {
         return Alert.alert(
           tr('Couldn’t read that statement'),
-          tr('BudT needs a CSV file with a date column and an amount (or money in / money out) column. If your bank gives a PDF or Excel file, open it in a spreadsheet app and save it as CSV.'),
+          tr('BudIT needs a CSV file with a date column and an amount (or money in / money out) column. If your bank gives a PDF or Excel file, open it in a spreadsheet app and save it as CSV.'),
         );
       }
       setParsed(detected);
@@ -96,7 +96,7 @@ export default function ImportScreen() {
         <Card style={{ gap: 12 }}>
           <Ionicons name="document-text-outline" size={36} color={t.primary} />
           <AppText variant="heading">{tr('Import a bank or mobile-money statement')}</AppText>
-          <AppText variant="caption">{tr('1. In your bank or mobile-money app (or internet banking), download your statement as CSV. For Excel files, open them and “Save as” CSV.\n2. Pick the file here. BudT finds the dates and amounts, suggests categories and skips anything you’ve already recorded.\n3. Check the preview and import. The file is read on your phone and never uploaded.')}</AppText>
+          <AppText variant="caption">{tr('1. In your bank or mobile-money app (or internet banking), download your statement as CSV. For Excel files, open them and “Save as” CSV.\n2. Pick the file here. BudIT finds the dates and amounts, suggests categories and skips anything you’ve already recorded.\n3. Check the preview and import. The file is read on your phone and never uploaded.')}</AppText>
           <Button title={tr('Choose CSV file')} icon="folder-open-outline" onPress={pick} />
         </Card>
       ) : (
@@ -179,10 +179,10 @@ function Preview({
     try {
       const toImport: ImportRow[] = chosen.map((r) => ({ date: r.date, amount: r.amount, type: r.type, note: r.description, category_id: r.category!.id }));
       await importTransactions(db, accountId, toImport);
-      Alert.alert(tr('Statement imported'), tr('{0} transaction{1} added.{2}', [toImport.length, toImport.length === 1 ? '' : 's', dupCount ? tr(' {0} already in BudT were skipped.', [dupCount]) : '']));
+      Alert.alert(tr('Statement imported'), tr('{0} transaction{1} added.{2}', [toImport.length, toImport.length === 1 ? '' : 's', dupCount ? tr(' {0} already in BudIT were skipped.', [dupCount]) : '']));
       goBack();
     } catch (e) {
-      if (e instanceof MissingRateError) Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudT can get the official rate, then try again.'));
+      if (e instanceof MissingRateError) Alert.alert(tr('No exchange rate yet'), tr('Connect to the internet once so BudIT can get the official rate, then try again.'));
       else Alert.alert(tr('Import failed'), tr('Nothing was imported. Please try again.'));
     } finally {
       setBusy(false);
@@ -210,7 +210,7 @@ function Preview({
 
       <Card>
         <AppText variant="heading">{tr('Columns')}</AppText>
-        <AppText variant="caption">{tr('BudT guessed these from the file. Tap to change if something looks wrong.')}</AppText>
+        <AppText variant="caption">{tr('BudIT guessed these from the file. Tap to change if something looks wrong.')}</AppText>
         {(['date', 'description', ...(columns.amount !== -1 ? ['amount'] : ['debit', 'credit'])] as Field[]).map((field) => (
           <View key={field} style={{ gap: 6 }}>
             <AppText weight="600">{tr(FIELD_LABELS[field])}</AppText>
@@ -254,7 +254,7 @@ function Preview({
                 <AppText numberOfLines={1}>{r.description || tr('(no description)')}</AppText>
                 <AppText variant="caption" numberOfLines={1}>
                   {shortDate(r.date)} · {r.category ? tr(r.category.name) : tr('Uncategorised')}
-                  {dup ? tr(' · already in BudT') : ''}
+                  {dup ? tr(' · already in BudIT') : ''}
                 </AppText>
               </View>
               <AppText weight="700" color={r.type === 'income' ? t.income : undefined}>

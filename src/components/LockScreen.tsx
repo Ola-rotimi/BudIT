@@ -69,7 +69,7 @@ function LockedView() {
     if (await unlockWithDeviceCredentials()) return;
     Alert.alert(
       tr('Can’t unlock'),
-      tr('BudT can be unlocked with your PIN, or with your phone’s own passcode or biometrics. If none of these work, reinstalling BudT erases its data, and you can then restore a backup.'),
+      tr('BudIT can be unlocked with your PIN, or with your phone’s own passcode or biometrics. If none of these work, reinstalling BudIT erases its data, and you can then restore a backup.'),
     );
   };
 
@@ -79,7 +79,7 @@ function LockedView() {
     <SafeAreaView style={[styles.locked, { backgroundColor: t.bg }]}>
       <View style={{ alignItems: 'center', gap: 10 }}>
         <Image source={require('../../assets/icon.png')} style={styles.iconSmall} accessibilityIgnoresInvertColors />
-        <AppText variant="heading">{tr('Enter your BudT PIN')}</AppText>
+        <AppText variant="heading">{tr('Enter your BudIT PIN')}</AppText>
         <AppText variant="caption" color={waiting || message ? t.expense : t.muted} style={{ textAlign: 'center' }}>
           {waiting ? tr('Too many attempts. Try again in {0}.', [seconds >= 60 ? tr('{0} min', [Math.ceil(seconds / 60)]) : `${seconds}s`]) : (message ?? ' ')}
         </AppText>

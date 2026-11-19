@@ -1,4 +1,4 @@
-# Releasing BudT
+# Releasing BudIT
 
 A checklist for every store build. Run the commands from the project root.
 
@@ -44,13 +44,13 @@ Face ID / fingerprint unlock and database encryption, which Expo Go can't run.
 
 ## 4. Over-the-air updates and code signing (not set up yet)
 
-BudT doesn't use over-the-air updates today: every change ships as a store build, so there's no
+BudIT doesn't use over-the-air updates today: every change ships as a store build, so there's no
 update channel that could be tampered with. If OTA updates are added later (`expo-updates` +
 `eas update`), turn on end-to-end code signing at the same time, so the app only runs updates
 signed with your own private key:
 
 ```sh
-npx expo-updates codesigning:generate --key-output-directory keys --certificate-output-directory certs --certificate-validity-duration-years 10 --certificate-common-name "BudT"
+npx expo-updates codesigning:generate --key-output-directory keys --certificate-output-directory certs --certificate-validity-duration-years 10 --certificate-common-name "BudIT"
 npx expo-updates codesigning:configure --certificate-input-directory certs --key-input-directory keys
 npx eas-cli@latest update --private-key-path keys/private-key.pem
 ```

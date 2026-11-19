@@ -78,7 +78,7 @@ function DatabaseGate({ children }: { children: ReactNode }) {
     if (!prepared?.unreadable) return;
     Alert.alert(
       tr('Your earlier data couldn’t be opened'),
-      tr('This can happen after moving BudT to a new phone, because its encryption key stays on the old one. You can restore your data from a BudT backup in Settings.'),
+      tr('This can happen after moving BudIT to a new phone, because its encryption key stays on the old one. You can restore your data from a BudIT backup in Settings.'),
     );
   }, [prepared?.unreadable]);
 

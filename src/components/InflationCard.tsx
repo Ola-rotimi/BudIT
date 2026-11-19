@@ -38,7 +38,7 @@ export function InflationCard({ month }: { month: string }) {
   });
 
   if (!isPro) {
-    return <ProLock title={tr('Is inflation eating your budget?')} message={tr('BudT Pro compares your spending with last year and with inflation, and shows which costs are rising fastest.')} />;
+    return <ProLock title={tr('Is inflation eating your budget?')} message={tr('BudIT Pro compares your spending with last year and with inflation, and shows which costs are rising fastest.')} />;
   }
   if (!data || !sum(data.now)) return null;
 
@@ -91,7 +91,7 @@ export function InflationCard({ month }: { month: string }) {
         </View>
       )}
       {inflation !== null && (
-        <AppText variant="caption">{tr('Inflation figure is BudT’s planning estimate for {0}; check your statistics office for the official rate.', [preset?.name])}</AppText>
+        <AppText variant="caption">{tr('Inflation figure is BudIT’s planning estimate for {0}; check your statistics office for the official rate.', [preset?.name])}</AppText>
       )}
     </Card>
   );

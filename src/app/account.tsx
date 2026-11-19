@@ -66,7 +66,7 @@ export default function AccountScreen() {
         text: tr('Remove'),
         style: 'destructive',
         onPress: async () => {
-          if (!(await removeAccount(db, id!))) return Alert.alert(tr('Keep at least one account'), tr('BudT needs one active account for your transactions.'));
+          if (!(await removeAccount(db, id!))) return Alert.alert(tr('Keep at least one account'), tr('BudIT needs one active account for your transactions.'));
           goBack();
         },
       },
@@ -148,7 +148,7 @@ export default function AccountScreen() {
         onChangeText={setBalance}
         keyboardType="decimal-pad"
         placeholder="0"
-        hint={id ? tr('Change this to match your bank or wallet; BudT adjusts the starting balance.') : tr('What’s in it today. Optional.')}
+        hint={id ? tr('Change this to match your bank or wallet; BudIT adjusts the starting balance.') : tr('What’s in it today. Optional.')}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ flex: 1 }}>

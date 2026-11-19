@@ -166,7 +166,7 @@ export default function HomeScreen() {
             {!isPro && <ProBadge />}
           </View>
           <AppText variant="caption">
-            {budgets.length ? tr('Rebalance your budgets from your income in one tap.') : tr('Enter your income and BudT builds your whole budget.')}
+            {budgets.length ? tr('Rebalance your budgets from your income in one tap.') : tr('Enter your income and BudIT builds your whole budget.')}
           </AppText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={t.muted} />

@@ -1,21 +1,21 @@
 {
   "expo": {
-    "name": "BudT",
-    "slug": "fintrack",
-    "scheme": "budt",
+    "name": "BudIT",
+    "slug": "budit",
+    "scheme": "budit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.BudT.app",
+      "bundleIdentifier": "com.budit.app",
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.BudT.app",
+      "package": "com.budit.app",
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0F766E",
@@ -43,13 +43,13 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Allow BudT to use Face ID to unlock the app."
+          "faceIDPermission": "Allow BudIT to use Face ID to unlock the app."
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow BudT to use Face ID to unlock the app."
+          "faceIDPermission": "Allow BudIT to use Face ID to unlock the app."
         }
       ],
       "expo-status-bar",

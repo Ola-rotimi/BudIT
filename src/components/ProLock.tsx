@@ -18,7 +18,7 @@ export function ProLock({ title, message }: { title: string; message: string }) 
         {title}
       </AppText>
       <AppText style={{ textAlign: 'center', color: t.muted }}>{message}</AppText>
-      <Button title={tr('Unlock with BudT Pro')} icon="sparkles" onPress={() => router.push('/paywall')} style={{ alignSelf: 'stretch' }} />
+      <Button title={tr('Unlock with BudIT Pro')} icon="sparkles" onPress={() => router.push('/paywall')} style={{ alignSelf: 'stretch' }} />
     </Card>
   );
 }

@@ -15,7 +15,7 @@ const ReauthContext = createContext<Confirm | null>(null);
 /**
  * Asks the user to prove it's them before a sensitive action (exporting data, erasing it, showing
  * hidden amounts, turning protections off), since anyone holding an unlocked phone could otherwise
- * do these. With app lock: Face ID / fingerprint if enabled, else the BudT PIN. Without app lock:
+ * do these. With app lock: Face ID / fingerprint if enabled, else the BudIT PIN. Without app lock:
  * the phone's own passcode or biometrics, if it has any.
  */
 export function ReauthProvider({ children }: { children: ReactNode }) {
@@ -113,7 +113,7 @@ function PinCheck({ reason, onDone }: { reason: string; onDone: (ok: boolean) =>
             {reason}
           </AppText>
           <AppText variant="caption" color={message || waiting ? t.expense : t.muted} style={{ textAlign: 'center' }}>
-            {waiting ? tr('Too many attempts. Try again later.') : (message ?? tr('Enter your BudT PIN'))}
+            {waiting ? tr('Too many attempts. Try again later.') : (message ?? tr('Enter your BudIT PIN'))}
           </AppText>
         </View>
         <PinPad key={config.pinLength} length={config.pinLength} onComplete={submit} disabled={waiting} />

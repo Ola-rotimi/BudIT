@@ -10,7 +10,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import * as Sharing from 'expo-sharing';
 import { setSetting } from '@/db/queries';
-import { exportSnapshot, SnapshotError, validateSnapshot, type Snapshot } from '@/db/snapshot';
+import { BACKUP_MARKERS, exportSnapshot, SnapshotError, validateSnapshot, type Snapshot } from '@/db/snapshot';
 import { decryptText, encryptText, type EncryptedPayload } from './crypto';
 import { todayISO } from './dates';
 import { tr } from '@/i18n';
@@ -23,7 +23,8 @@ export const LAST_BACKUP_KEY = 'lastBackupAt';
 /** Remind the user to back up after this many days. */
 export const BACKUP_REMINDER_DAYS = 30;
 
-export type EncryptedEnvelope = { app: 'BudT'; format: 1; encrypted: true } & EncryptedPayload;
+/** Encrypted backups made under the earlier names (`'BudT'`, `'BudiT'`) still open. */
+export type EncryptedEnvelope = { app: 'BudIT' | 'BudiT' | 'BudT'; format: 1; encrypted: true } & EncryptedPayload;
 
 export type PickedBackup = { kind: 'plain'; snapshot: BackupFile } | { kind: 'encrypted'; envelope: EncryptedEnvelope };
 
@@ -31,10 +32,10 @@ export type PickedBackup = { kind: 'plain'; snapshot: BackupFile } | { kind: 'en
 export async function createBackupFile(db: SQLiteDatabase, password?: string) {
   const snapshot = JSON.stringify(await exportSnapshot(db));
   const body = password
-    ? JSON.stringify({ app: 'BudT', format: 1, encrypted: true, ...(await encryptText(snapshot, password)) } satisfies EncryptedEnvelope)
+    ? JSON.stringify({ app: 'BudIT', format: 1, encrypted: true, ...(await encryptText(snapshot, password)) } satisfies EncryptedEnvelope)
     : snapshot;
   clearOldBackups();
-  const file = new File(Paths.cache, `BudT-backup-${todayISO()}${password ? '-locked' : ''}.json`);
+  const file = new File(Paths.cache, `BudIT-backup-${todayISO()}${password ? '-locked' : ''}.json`);
   file.create({ overwrite: true });
   await file.write(body);
   return file;
@@ -43,7 +44,7 @@ export async function createBackupFile(db: SQLiteDatabase, password?: string) {
 /** Opens the share sheet so the user can save the backup, and records when they last did. */
 export async function shareBackupFile(db: SQLiteDatabase, file: File) {
   if (!(await Sharing.isAvailableAsync())) throw new SnapshotError(tr('Sharing isn’t available on this device.'));
-  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: tr('Save your BudT backup') });
+  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: tr('Save your BudIT backup') });
   await setSetting(db, LAST_BACKUP_KEY, new Date().toISOString());
 }
 
@@ -54,7 +55,7 @@ export async function shareBackupFile(db: SQLiteDatabase, file: File) {
 export function clearOldBackups() {
   try {
     for (const entry of new Directory(Paths.cache).list()) {
-      if (entry instanceof File && entry.name.startsWith('BudT-backup-')) entry.delete();
+      if (entry instanceof File && /^Bud(i|I)?T-backup-/.test(entry.name)) entry.delete();
     }
   } catch {
     // Best effort: the cache is cleared by the OS eventually anyway.
@@ -71,7 +72,7 @@ export async function pickBackup(): Promise<PickedBackup | null> {
   try {
     parsed = JSON.parse(await file.text());
   } catch {
-    throw new SnapshotError(tr('That file isn’t a BudT backup.'));
+    throw new SnapshotError(tr('That file isn’t a BudIT backup.'));
   } finally {
     if (file.exists) file.delete();
   }
@@ -87,5 +88,5 @@ export async function unlockBackup(envelope: EncryptedEnvelope, password: string
 
 function isEncrypted(value: unknown): value is EncryptedEnvelope {
   const v = value as Partial<EncryptedEnvelope> | null;
-  return !!v && v.app === 'BudT' && v.encrypted === true && typeof v.data === 'string' && !!v.kdf && !!v.cipher;
+  return !!v && BACKUP_MARKERS.includes(v.app as string) && v.encrypted === true && typeof v.data === 'string' && !!v.kdf && !!v.cipher;
 }

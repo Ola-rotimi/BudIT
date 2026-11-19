@@ -43,11 +43,15 @@ type TableName = keyof typeof TABLES;
 type Row = Record<string, string | number | null>;
 
 export type Snapshot = {
-  app: 'BudT';
+  /** File-format marker. Backups made under the earlier names ('BudT', 'BudiT') still restore. */
+  app: 'BudIT' | 'BudiT' | 'BudT';
   format: number;
   exportedAt: string;
   tables: Record<TableName, Row[]>;
 };
+
+/** Every marker BudIT has written into backups. */
+export const BACKUP_MARKERS: readonly string[] = ['BudIT', 'BudiT', 'BudT'];
 
 export class SnapshotError extends Error {}
 
@@ -58,15 +62,15 @@ export async function exportSnapshot(db: SQLiteDatabase): Promise<Snapshot> {
   for (const [name, columns] of entries()) {
     tables[name] = await db.getAllAsync<Row>(`SELECT ${columns.join(', ')} FROM ${name}`);
   }
-  return { app: 'BudT', format: SNAPSHOT_FORMAT, exportedAt: new Date().toISOString(), tables };
+  return { app: 'BudIT', format: SNAPSHOT_FORMAT, exportedAt: new Date().toISOString(), tables };
 }
 
-/** Checks that parsed JSON is a BudT snapshot this version can restore. */
+/** Checks that parsed JSON is a BudIT snapshot this version can restore. */
 export function validateSnapshot(parsed: unknown): Snapshot {
   const s = parsed as Partial<Snapshot> | null;
-  if (s?.app !== 'BudT' || typeof s.tables !== 'object' || !s.tables) throw new SnapshotError(tr('That file isn’t a BudT backup.'));
+  if (!s || !BACKUP_MARKERS.includes(s.app as string) || typeof s.tables !== 'object' || !s.tables) throw new SnapshotError(tr('That file isn’t a BudIT backup.'));
   if ((s.format ?? 0) > SNAPSHOT_FORMAT) {
-    throw new SnapshotError(tr('This backup was made by a newer version of BudT. Update the app and try again.'));
+    throw new SnapshotError(tr('This backup was made by a newer version of BudIT. Update the app and try again.'));
   }
   const tables = { ...s.tables } as Record<TableName, Row[]>;
   for (const [name] of entries()) {

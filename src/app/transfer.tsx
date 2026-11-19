@@ -74,7 +74,7 @@ export default function TransferScreen() {
     try {
       await saveTransfer(db, { id, from_account: from, to_account: to, amount: cents, to_amount: toAmount, fee: feeCents, date, note: note.trim() });
     } catch (e) {
-      if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('BudT needs the official {0} rate once to record this. Connect to the internet and try again.', [fromCurrency]));
+      if (e instanceof MissingRateError) return Alert.alert(tr('No exchange rate yet'), tr('BudIT needs the official {0} rate once to record this. Connect to the internet and try again.', [fromCurrency]));
       throw e;
     }
     goBack();

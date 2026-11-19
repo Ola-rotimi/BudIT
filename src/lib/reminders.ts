@@ -15,7 +15,9 @@ import { formatMoney } from './money';
 import { tr } from '@/i18n';
 
 const CHANNEL = 'reminders';
-const PREFIX = 'budt-';
+const PREFIX = 'budit-';
+/** Prefix used before the app was renamed BudIT, so old reminders are cleared too. */
+const LEGACY_PREFIX = 'budt-';
 /** iOS keeps at most 64 pending notifications per app; stay well under it. */
 const MAX_BILL_REMINDERS = 40;
 const BILL_HOUR = 9;
@@ -61,14 +63,14 @@ export async function saveReminderSetting(db: SQLiteDatabase, key: keyof typeof 
 }
 
 /**
- * Replaces all of BudT's scheduled notifications with ones matching current data.
+ * Replaces all of BudIT's scheduled notifications with ones matching current data.
  * `showAmounts` is false when amounts are hidden or the app is locked, so lock-screen previews
  * never reveal figures.
  */
 export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; showAmounts: boolean; currency: string }) {
   const settings = await readReminderSettings(db);
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  await Promise.all(scheduled.filter((n) => n.identifier.startsWith(PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
+  await Promise.all(scheduled.filter((n) => n.identifier.startsWith(PREFIX) || n.identifier.startsWith(LEGACY_PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
 
   if (!settings.bills && !settings.daily && !settings.backup) return;
   if (!(await Notifications.getPermissionsAsync()).granted) return;
@@ -84,7 +86,7 @@ export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; 
       await Notifications.scheduleNotificationAsync({
         identifier: `${PREFIX}backup`,
         content: {
-          title: tr('Time to back up BudT'),
+          title: tr('Time to back up BudIT'),
           body: last ? tr('It’s been {0} days since your last backup. Your records only live on this phone.', [BACKUP_REMINDER_DAYS]) : tr('You haven’t backed up yet. Your records only live on this phone.'),
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, channelId },
@@ -96,7 +98,7 @@ export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; 
     const [hour, minute] = settings.daily.split(':').map(Number);
     await Notifications.scheduleNotificationAsync({
       identifier: `${PREFIX}daily`,
-      content: { title: tr('Anything to add to BudT?'), body: tr('Take 30 seconds to log today’s spending and stay on budget.') },
+      content: { title: tr('Anything to add to BudIT?'), body: tr('Take 30 seconds to log today’s spending and stay on budget.') },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId },
     });
   }
@@ -121,7 +123,7 @@ export async function syncReminders(db: SQLiteDatabase, opts: { isPro: boolean; 
       const amount = opts.showAmounts ? ` (${formatMoney(b.amount, opts.currency)})` : '';
       await Notifications.scheduleNotificationAsync({
         identifier: `${PREFIX}bill-${b.id}`,
-        content: { title: tr('{0} is {1}', [b.name, label]), body: tr('Your {0} payment{1} is {2}. Mark it paid in BudT once it’s done.', [b.name, amount, label]) },
+        content: { title: tr('{0} is {1}', [b.name, label]), body: tr('Your {0} payment{1} is {2}. Mark it paid in BudIT once it’s done.', [b.name, amount, label]) },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, channelId },
       });
     }

@@ -75,7 +75,7 @@ export default function SettingsScreen() {
 
   const setReminder = async (key: 'bills' | 'daily' | 'backup', value: string) => {
     if (value && value !== '0' && !(await ensurePermission())) {
-      return Alert.alert(tr('Notifications are off'), tr('Allow notifications for BudT in your phone’s Settings to get reminders.'), [
+      return Alert.alert(tr('Notifications are off'), tr('Allow notifications for BudIT in your phone’s Settings to get reminders.'), [
         { text: tr('Not now'), style: 'cancel' },
         { text: tr('Open Settings'), onPress: () => Linking.openSettings() },
       ]);
@@ -94,7 +94,7 @@ export default function SettingsScreen() {
   const restorePro = async () => {
     try {
       const restored = await pro.restore();
-      Alert.alert(restored ? tr('Purchases restored') : tr('Nothing to restore'), restored ? tr('BudT Pro is active.') : tr('No BudT Pro purchase was found for this store account.'));
+      Alert.alert(restored ? tr('Purchases restored') : tr('Nothing to restore'), restored ? tr('BudIT Pro is active.') : tr('No BudIT Pro purchase was found for this store account.'));
     } catch {
       Alert.alert(tr('Restore failed'), tr('Couldn’t reach the store. Check your connection and try again.'));
     }
@@ -166,7 +166,7 @@ export default function SettingsScreen() {
     const count = file.tables.transactions.length;
     Alert.alert(
       tr('Restore this backup?'),
-      tr('Backup from {0} with {1} transaction{2}. It replaces ALL data currently in BudT.', [shortDate(file.exportedAt.slice(0, 10)), count, count === 1 ? '' : 's']),
+      tr('Backup from {0} with {1} transaction{2}. It replaces ALL data currently in BudIT.', [shortDate(file.exportedAt.slice(0, 10)), count, count === 1 ? '' : 's']),
       [
         { text: tr('Cancel'), style: 'cancel' },
         {
@@ -190,7 +190,7 @@ export default function SettingsScreen() {
     const { csv, count } = await exportTransactionsCsv(db);
     if (!count) return Alert.alert(tr('Nothing to export'), tr('Add some transactions first.'));
     if (!(await confirm(tr('Export your transactions')))) return;
-    await Share.share({ title: tr('BudT transactions'), message: csv });
+    await Share.share({ title: tr('BudIT transactions'), message: csv });
   };
 
   const reset = async () => {
@@ -207,7 +207,7 @@ export default function SettingsScreen() {
   };
 
   const safePinOptions = () =>
-    Alert.alert(tr('Safe PIN'), tr('Entering your safe PIN instead of your real one opens BudT with amounts hidden and accounts, debts, groups and IOUs looking empty.'), [
+    Alert.alert(tr('Safe PIN'), tr('Entering your safe PIN instead of your real one opens BudIT with amounts hidden and accounts, debts, groups and IOUs looking empty.'), [
       { text: tr('Cancel'), style: 'cancel' },
       { text: tr('Change safe PIN'), onPress: () => setPinMode('safe') },
       {
@@ -227,12 +227,12 @@ export default function SettingsScreen() {
         <ListRow
           icon="sparkles"
           iconColor={t.accent}
-          title={pro.isPro ? tr('BudT Pro is active') : tr('Upgrade to BudT Pro')}
+          title={pro.isPro ? tr('BudIT Pro is active') : tr('Upgrade to BudIT Pro')}
           subtitle={
             pro.trial
               ? tr('Free trial until {0}', [shortDate(toISODate(new Date(pro.trial.endsAt)))])
               : pro.isPro
-                ? tr('Thanks for supporting BudT')
+                ? tr('Thanks for supporting BudIT')
                 : tr('Goals, bills, tax & pension, and every financial tool')
           }
           onPress={() => router.push('/paywall')}
@@ -266,7 +266,7 @@ export default function SettingsScreen() {
           icon="lock-closed-outline"
           title={tr('App lock')}
           subtitle={
-            security.config.enabled ? tr('{0}-digit PIN{1}', [security.config.pinLength, security.config.biometrics && security.biometricKind ? tr(' or {0}', [biometricLabel(security.biometricKind)]) : '']) : tr('Ask for a PIN whenever BudT opens')
+            security.config.enabled ? tr('{0}-digit PIN{1}', [security.config.pinLength, security.config.biometrics && security.biometricKind ? tr(' or {0}', [biometricLabel(security.biometricKind)]) : '']) : tr('Ask for a PIN whenever BudIT opens')
           }
           value={security.config.enabled}
           onChange={(on) => setPinMode(on ? 'set' : 'disable')}
@@ -287,7 +287,7 @@ export default function SettingsScreen() {
             )}
             <Divider />
             <View style={{ gap: 8, paddingVertical: 4 }}>
-              <AppText weight="600">{tr('Lock after leaving BudT')}</AppText>
+              <AppText weight="600">{tr('Lock after leaving BudIT')}</AppText>
               <Segmented
                 value={String(security.config.timeout)}
                 onChange={(v) => security.update({ timeout: Number(v) })}
@@ -304,7 +304,7 @@ export default function SettingsScreen() {
                   icon="shield-half-outline"
                   iconColor={t.primary}
                   title={tr('Safe PIN')}
-                  subtitle={security.config.safePin ? tr('On. Opens BudT with your finances hidden') : tr('A second PIN for when someone forces you to open BudT')}
+                  subtitle={security.config.safePin ? tr('On. Opens BudIT with your finances hidden') : tr('A second PIN for when someone forces you to open BudIT')}
                   onPress={security.config.safePin ? safePinOptions : () => setPinMode('safe')}
                 />
               </>
@@ -315,7 +315,7 @@ export default function SettingsScreen() {
         <ToggleRow
           icon="eye-off-outline"
           title={tr('Privacy screen')}
-          subtitle={tr('Hide BudT in recent apps and block screenshots')}
+          subtitle={tr('Hide BudIT in recent apps and block screenshots')}
           value={security.config.privacy}
           onChange={setPrivacy}
         />
@@ -333,7 +333,7 @@ export default function SettingsScreen() {
             <View style={styles.devRow}>
               <Ionicons name="warning-outline" size={20} color={t.warning} />
               <AppText variant="caption" style={{ flex: 1 }}>
-                {tr('This phone may be rooted or jailbroken, which weakens BudT’s encryption and app lock.')}
+                {tr('This phone may be rooted or jailbroken, which weakens BudIT’s encryption and app lock.')}
               </AppText>
             </View>
           </>
@@ -346,7 +346,7 @@ export default function SettingsScreen() {
           <ToggleRow
             icon="calendar-outline"
             title={tr('Bill reminders')}
-            subtitle={pro.isPro ? tr('A notification the day before each bill is due') : tr('BudT Pro: get notified before bills are due')}
+            subtitle={pro.isPro ? tr('A notification the day before each bill is due') : tr('BudIT Pro: get notified before bills are due')}
             value={reminders.bills && pro.isPro}
             onChange={(on) => (pro.isPro ? setReminder('bills', on ? '1' : '0') : router.push('/paywall'))}
           />
@@ -512,15 +512,15 @@ export default function SettingsScreen() {
           icon="shield-checkmark-outline"
           iconColor={t.primary}
           title={tr('Privacy policy')}
-          subtitle={tr('How BudT handles your data')}
+          subtitle={tr('How BudIT handles your data')}
           onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
         />
       </Card>
 
       <View style={styles.about}>
         <Ionicons name="lock-closed-outline" size={16} color={t.muted} />
-        <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Your data stays on this device, encrypted in store builds. Uninstalling BudT deletes it, so back up regularly.')}</AppText>
-        <AppText variant="caption">{tr('BudT {0}', [Constants.expoConfig?.version ?? ''])}</AppText>
+        <AppText variant="caption" style={{ textAlign: 'center' }}>{tr('Your data stays on this device, encrypted in store builds. Uninstalling BudIT deletes it, so back up regularly.')}</AppText>
+        <AppText variant="caption">{tr('BudIT {0}', [Constants.expoConfig?.version ?? ''])}</AppText>
       </View>
 
       <PinSetup mode={pinMode} onClose={() => setPinMode(null)} />

@@ -26,7 +26,7 @@ type Step = (typeof STEPS)[number];
 const TOUR: { icon: IconName; title: string; text: string; pro?: boolean }[] = [
   { icon: 'home', title: N_('Home'), text: N_('Tap Expense or Income to record money in seconds. Activity and Insights sit on your balance card.') },
   { icon: 'pie-chart', title: N_('Budgets'), text: N_('Set monthly limits per category and see what’s left as you spend.') },
-  { icon: 'sparkles', title: N_('Smart budget'), text: N_('Enter your income and BudT builds a complete budget for you.'), pro: true },
+  { icon: 'sparkles', title: N_('Smart budget'), text: N_('Enter your income and BudIT builds a complete budget for you.'), pro: true },
   { icon: 'calculator', title: N_('Tax & Pension'), text: N_('Your real take-home pay and retirement outlook, with your country’s rules.'), pro: true },
   { icon: 'grid', title: N_('More'), text: N_('Savings goals, bills, the currency converter and other tools.') },
 ];
@@ -74,7 +74,7 @@ export default function WelcomeScreen() {
             <View style={styles.hero}>
               <Image source={require('../../assets/icon.png')} style={styles.icon} accessibilityIgnoresInvertColors />
               <LanguagePicker compact />
-              <AppText variant="title" style={{ textAlign: 'center' }}>{tr('Welcome to BudT')}</AppText>
+              <AppText variant="title" style={{ textAlign: 'center' }}>{tr('Welcome to BudIT')}</AppText>
               <AppText style={{ textAlign: 'center', color: t.muted }}>{tr('Your money, planned. Track what comes in and goes out, stay on budget and plan ahead.')}</AppText>
               <Card style={{ alignSelf: 'stretch', gap: 14 }}>
                 <Point icon="flash">{tr('Record income and expenses in a couple of taps')}</Point>
@@ -86,7 +86,7 @@ export default function WelcomeScreen() {
 
           {step === 'tour' && (
             <>
-              <Heading title={tr('How BudT works')} text={tr('Five places to know. You can replay this tour from Settings any time.')} />
+              <Heading title={tr('How BudIT works')} text={tr('Five places to know. You can replay this tour from Settings any time.')} />
               <Card style={{ gap: 14 }}>
                 {TOUR.map((item) => (
                   <Point key={item.title} icon={item.icon} title={tr(item.title)} badge={item.pro && !isPro}>
@@ -115,7 +115,7 @@ export default function WelcomeScreen() {
             <>
               <Heading
                 title={tr('What do you earn a month?')}
-                text={tr('Your take-home pay, after tax. BudT uses it to suggest a budget. It never leaves your phone.')}
+                text={tr('Your take-home pay, after tax. BudIT uses it to suggest a budget. It never leaves your phone.')}
               />
               <Card>
                 <Field
@@ -158,7 +158,7 @@ export default function WelcomeScreen() {
                   <AppText weight="700" style={{ flex: 1 }}>{tr('Let Smart budget do the rest')}</AppText>
                   {!isPro && <ProBadge />}
                 </View>
-                <AppText variant="caption">{tr('BudT splits your income across rent, groceries, transport and every other category, sets the budgets for you and starts an emergency fund goal.')}</AppText>
+                <AppText variant="caption">{tr('BudIT splits your income across rent, groceries, transport and every other category, sets the budgets for you and starts an emergency fund goal.')}</AppText>
               </Card>
             </>
           )}
@@ -169,7 +169,7 @@ export default function WelcomeScreen() {
         {step === 'plan' ? (
           <>
             <Button title={tr('Build my budget')} icon="sparkles" onPress={() => finish(true)} />
-            <Button title={tr('Start using BudT')} variant="ghost" onPress={() => finish()} />
+            <Button title={tr('Start using BudIT')} variant="ghost" onPress={() => finish()} />
           </>
         ) : (
           <View style={styles.nav}>

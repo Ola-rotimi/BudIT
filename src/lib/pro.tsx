@@ -1,5 +1,5 @@
 /**
- * BudT Pro: subscription state via RevenueCat. Pro unlocks the Tax calculator, Pension planner and
+ * BudIT Pro: subscription state via RevenueCat. Pro unlocks the Tax calculator, Pension planner and
  * the other paid tools (the currency converter is free). In Expo Go, RevenueCat runs in Preview API
  * mode (no real charges).
  */
@@ -128,7 +128,7 @@ export type PlanOption = {
 };
 
 /**
- * The free trial set up on a subscription in App Store Connect / Google Play (BudT uses 7 days).
+ * The free trial set up on a subscription in App Store Connect / Google Play (BudIT uses 7 days).
  * The trial itself is configured in the stores, not here, so the paywall always shows what the
  * store will actually charge.
  */

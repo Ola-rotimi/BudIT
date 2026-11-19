@@ -86,7 +86,7 @@ export default function SavingsCalculator() {
           )}
         </>
       ) : (
-        <ProLock title={tr('See your savings grow')} message={tr('BudT Pro projects your balance, contributions and interest earned year by year.')} />
+        <ProLock title={tr('See your savings grow')} message={tr('BudIT Pro projects your balance, contributions and interest earned year by year.')} />
       )}
     </Screen>
   );

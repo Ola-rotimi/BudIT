@@ -45,7 +45,7 @@ export default function GroupsScreen() {
           <EmptyState
             icon="people-outline"
             title={tr('No savings groups yet')}
-            message={tr('Add your ajo, esusu, susu, chama or stokvel. BudT tracks your contributions, your turn and what you’re owed or still owe.')}
+            message={tr('Add your ajo, esusu, susu, chama or stokvel. BudIT tracks your contributions, your turn and what you’re owed or still owe.')}
             action={{ label: tr('Add a group'), onPress: addGroup }}
           />
         </Card>

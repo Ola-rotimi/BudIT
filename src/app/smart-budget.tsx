@@ -96,7 +96,7 @@ function SmartBudgetForm({ data }: { data: Loaded }) {
     if (!plan) return;
     const replaceNote = data.budgetCount ? tr('This replaces your {0} current budget{1}. ', [data.budgetCount, data.budgetCount === 1 ? '' : 's']) : '';
     const goalNote = makeGoal ? tr('and an emergency fund goal of {0}', [money(plan.emergency.min)]) : '';
-    Alert.alert(tr('Use this budget?'), tr('{0}BudT will set {1} category budgets {2}. You can fine-tune any of them later.', [replaceNote, plan.budgets.length, goalNote]), [
+    Alert.alert(tr('Use this budget?'), tr('{0}BudIT will set {1} category budgets {2}. You can fine-tune any of them later.', [replaceNote, plan.budgets.length, goalNote]), [
       { text: tr('Cancel'), style: 'cancel' },
       {
         text: tr('Use budget'),
@@ -122,7 +122,7 @@ function SmartBudgetForm({ data }: { data: Loaded }) {
         <View style={styles.row}>
           <IconBadge icon="sparkles" color={t.primary} />
           <View style={{ flex: 1 }}>
-            <AppText weight="700">{tr('Just tell BudT what you earn')}</AppText>
+            <AppText weight="700">{tr('Just tell BudIT what you earn')}</AppText>
             <AppText variant="caption">{tr('We’ll split it into needs, wants and savings using proven budgeting rules, then across your categories.')}</AppText>
           </View>
         </View>
@@ -177,7 +177,7 @@ function SmartBudgetForm({ data }: { data: Loaded }) {
       ) : !isPro ? (
         <ProLock
           title={tr('See your full budget')}
-          message={tr('BudT Pro splits your income across every category, sets the budgets for you and builds your emergency fund goal.')}
+          message={tr('BudIT Pro splits your income across every category, sets the budgets for you and builds your emergency fund goal.')}
         />
       ) : (
         <>

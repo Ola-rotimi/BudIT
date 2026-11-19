@@ -11,7 +11,7 @@ let rootCheck: Promise<boolean> | null = null;
 
 /**
  * Whether the phone appears to be rooted (Android) or jailbroken (iOS). On such a phone other apps
- * can read BudT's files and keychain, so its encryption and app lock protect much less. The check
+ * can read BudIT's files and keychain, so its encryption and app lock protect much less. The check
  * is a best guess (it can be fooled either way), so it only ever warns. Simulators are skipped.
  */
 export function deviceLooksRooted() {
@@ -38,7 +38,7 @@ export function SecurityChecks() {
       await setSetting(db, ROOT_WARNED_KEY, new Date().toISOString());
       Alert.alert(
         tr('This phone may be rooted or jailbroken'),
-        tr('On a rooted or jailbroken phone, other apps can get around the protections that keep your BudT data private, including encryption and app lock. Use BudT on a phone with the standard system software if you can.'),
+        tr('On a rooted or jailbroken phone, other apps can get around the protections that keep your BudIT data private, including encryption and app lock. Use BudIT on a phone with the standard system software if you can.'),
       );
     })();
     return () => {

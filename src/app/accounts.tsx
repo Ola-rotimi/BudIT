@@ -46,7 +46,7 @@ export default function AccountsScreen() {
         {owed < 0 && <AppText variant="caption">{tr('Includes {0} owed on cards or loans.', [money(-owed)])}</AppText>}
         {unconverted.length > 0 && (
           <AppText variant="caption" color={t.warning}>
-            {tr('{0} isn’t included yet: BudT needs the official exchange rate once. Connect to the internet to update.', [unconverted.map((a) => a.name).join(', ')])}
+            {tr('{0} isn’t included yet: BudIT needs the official exchange rate once. Connect to the internet to update.', [unconverted.map((a) => a.name).join(', ')])}
           </AppText>
         )}
         <Button title={tr('Transfer between accounts')} icon="swap-horizontal" variant="secondary" onPress={() => router.push('/transfer')} disabled={accounts.length < 2} />

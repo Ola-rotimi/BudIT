@@ -92,7 +92,7 @@ function PromptBody({ mode, title, message, onSubmit, onCancel, secondary }: Omi
           </AppText>
         </Pressable>
         {mode === 'create' && (
-          <AppText variant="caption" color={t.warning}>{tr('Keep this password safe. Without it the backup can’t be opened, not even by BudT.')}</AppText>
+          <AppText variant="caption" color={t.warning}>{tr('Keep this password safe. Without it the backup can’t be opened, not even by BudIT.')}</AppText>
         )}
         {error && (
           <AppText variant="caption" color={t.expense}>

@@ -114,7 +114,7 @@ export default function LoanCalculator() {
           )}
         </>
       ) : (
-        <ProLock title={tr('See your repayments')} message={tr('BudT Pro works out your monthly payment, total interest, and how much time and interest overpaying saves.')} />
+        <ProLock title={tr('See your repayments')} message={tr('BudIT Pro works out your monthly payment, total interest, and how much time and interest overpaying saves.')} />
       )}
     </Screen>
   );

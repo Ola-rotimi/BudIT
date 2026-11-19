@@ -40,7 +40,7 @@ export type Account = {
   kind: AccountKind;
   icon: IconName;
   color: string;
-  /** Balance before the first transaction recorded in BudT, in cents. Can be negative (e.g. a card). */
+  /** Balance before the first transaction recorded in BudIT, in cents. Can be negative (e.g. a card). */
   opening_balance: number;
   archived: number;
   /** Currency the account holds, e.g. 'USD' for a domiciliary account. Null = the home currency. */
@@ -121,7 +121,7 @@ export type SavingsGroup = {
   my_turn: number;
   /** The user's account contributions come from and the payout goes to. */
   account_id: number;
-  /** BudT account tracking money in the group: contributions in, payout out. */
+  /** BudIT account tracking money in the group: contributions in, payout out. */
   pot_account_id: number;
   active: number;
   created_at: string;

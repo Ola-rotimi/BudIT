@@ -11,12 +11,18 @@ import * as SecureStore from 'expo-secure-store';
 import { defaultDatabaseDirectory, deleteDatabaseAsync, openDatabaseAsync, openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 import { randomKeyHex } from '@/lib/crypto';
 
-/** The original (unencrypted) database. Still used where SQLCipher isn't available. */
-export const PLAIN_DB = 'fintrack.db';
-export const SECURE_DB = 'budt.db';
-const MIGRATING_DB = 'budt-migrating.db';
+/** The unencrypted database. Still used where SQLCipher isn't available (e.g. Expo Go). */
+export const PLAIN_DB = 'budit-plain.db';
+export const SECURE_DB = 'budit.db';
+const MIGRATING_DB = 'budit-migrating.db';
 
-const KEY_NAME = 'budt.dbKey';
+const KEY_NAME = 'budit.dbKey';
+/** Names used before the app was renamed BudIT; moved over once on first launch. */
+const LEGACY_FILES: [from: string, to: string][] = [
+  ['fintrack.db', PLAIN_DB],
+  ['budt.db', SECURE_DB],
+];
+const LEGACY_KEY_NAME = 'budt.dbKey';
 // Not "this device only": on iOS the key then travels with an encrypted device backup, like the database.
 const KEY_OPTS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK };
 
@@ -48,6 +54,13 @@ function hasSQLCipher() {
 async function getOrCreateKey() {
   const existing = await SecureStore.getItemAsync(KEY_NAME, KEY_OPTS);
   if (existing && /^[0-9a-f]{64}$/.test(existing)) return existing;
+  // The key from before the rename, if any: keep using it so the existing database still opens.
+  const legacy = await SecureStore.getItemAsync(LEGACY_KEY_NAME, KEY_OPTS);
+  if (legacy && /^[0-9a-f]{64}$/.test(legacy)) {
+    await SecureStore.setItemAsync(KEY_NAME, legacy, KEY_OPTS);
+    await SecureStore.deleteItemAsync(LEGACY_KEY_NAME, KEY_OPTS);
+    return legacy;
+  }
   const key = randomKeyHex();
   await SecureStore.setItemAsync(KEY_NAME, key, KEY_OPTS);
   return key;
@@ -109,8 +122,24 @@ async function encryptExisting(key: string) {
   await deleteDatabaseAsync(PLAIN_DB);
 }
 
+/** Moves databases saved under the old app names to the current ones (with their journal files). */
+function moveLegacyFiles() {
+  for (const [from, to] of LEGACY_FILES) {
+    if (!fileOf(from).exists || fileOf(to).exists) continue;
+    for (const suffix of ['', '-wal', '-shm']) {
+      const f = fileOf(from + suffix);
+      if (f.exists) f.rename(to + suffix);
+    }
+  }
+}
+
 /** Decides which database file to open, encrypting the existing one on first run with SQLCipher. */
 export async function prepareDatabase(): Promise<PreparedDatabase> {
+  try {
+    moveLegacyFiles();
+  } catch (e) {
+    console.warn('Couldn’t move the database to its new name', e);
+  }
   if (!hasSQLCipher()) return { name: PLAIN_DB, key: null };
 
   let key: string;
@@ -130,7 +159,7 @@ export async function prepareDatabase(): Promise<PreparedDatabase> {
     }
     // The key is gone (e.g. restored onto a new phone without the keychain). Keep the file, start afresh.
     // Its journal files move with it so the new database can't pick them up.
-    const aside = `budt-unreadable-${Date.now()}.db`;
+    const aside = `budit-unreadable-${Date.now()}.db`;
     for (const suffix of ['', '-wal', '-shm']) {
       const f = fileOf(SECURE_DB + suffix);
       if (f.exists) f.rename(aside + suffix);

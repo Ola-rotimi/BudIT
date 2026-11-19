@@ -16,17 +16,17 @@ export const LIMIT_COPY: Record<LimitedFeature, { noun: (n: number) => string; t
   goals: {
     noun: (n) => (n === 1 ? tr('savings goal') : tr('savings goals')),
     title: N_('Save for everything at once'),
-    message: N_('BudT Pro gives you unlimited savings goals, each with its own target date and monthly amount.'),
+    message: N_('BudIT Pro gives you unlimited savings goals, each with its own target date and monthly amount.'),
   },
   bills: {
     noun: (n) => (n === 1 ? tr('bill') : tr('bills')),
     title: N_('Never miss a bill'),
-    message: N_('BudT Pro tracks unlimited bills and subscriptions and reminds you the day before each one is due.'),
+    message: N_('BudIT Pro tracks unlimited bills and subscriptions and reminds you the day before each one is due.'),
   },
   groups: {
     noun: (n) => (n === 1 ? tr('savings group') : tr('savings groups')),
     title: N_('Track every group you’re in'),
-    message: N_('BudT Pro tracks unlimited ajo, esusu, susu, chama and stokvel groups, with every contribution and payout.'),
+    message: N_('BudIT Pro tracks unlimited ajo, esusu, susu, chama and stokvel groups, with every contribution and payout.'),
   },
 };
 
@@ -58,7 +58,7 @@ export function useFreeLimit(feature: LimitedFeature) {
       tr('The free plan includes {0} {1}. {2}', [limit, copy.noun(limit), tr(copy.message)]),
       [
         { text: tr('Not now'), style: 'cancel' },
-        { text: tr('See BudT Pro'), onPress: () => router.push('/paywall') },
+        { text: tr('See BudIT Pro'), onPress: () => router.push('/paywall') },
       ],
     );
   };

@@ -58,7 +58,7 @@ export default function NetWorthScreen() {
         {now.parts.iOwe > 0 && <StatLine label={tr('You owe people')} value={money(now.parts.iOwe)} />}
         {now.unconverted.length > 0 && (
           <AppText variant="caption" color={t.warning}>
-            {tr('{0} isn’t included yet: BudT needs the official exchange rate once. Connect to the internet to update.', [now.unconverted.map((a) => a.name).join(', ')])}
+            {tr('{0} isn’t included yet: BudIT needs the official exchange rate once. Connect to the internet to update.', [now.unconverted.map((a) => a.name).join(', ')])}
           </AppText>
         )}
       </Card>

@@ -67,7 +67,7 @@ export default function PaywallScreen() {
             tr('Everything is unlocked for {0}. You won’t be charged if you cancel at least 24 hours before the trial ends, in your {1} account settings.', [plan.trial, store]),
           );
         } else {
-          Alert.alert(tr('Welcome to BudT Pro'), tr('Thanks for supporting BudT! Everything is unlocked.'));
+          Alert.alert(tr('Welcome to BudIT Pro'), tr('Thanks for supporting BudIT! Everything is unlocked.'));
         }
         goBack();
       }
@@ -82,7 +82,7 @@ export default function PaywallScreen() {
     setBusy(true);
     try {
       const restored = await restore();
-      Alert.alert(restored ? tr('Purchases restored') : tr('Nothing to restore'), restored ? tr('BudT Pro is active again.') : tr('No BudT Pro purchase was found for this store account.'));
+      Alert.alert(restored ? tr('Purchases restored') : tr('Nothing to restore'), restored ? tr('BudIT Pro is active again.') : tr('No BudIT Pro purchase was found for this store account.'));
       if (restored) goBack();
     } catch {
       Alert.alert(tr('Restore failed'), tr('Couldn’t reach the store. Check your connection and try again.'));
@@ -95,14 +95,14 @@ export default function PaywallScreen() {
   const title = isPro
     ? trial
       ? tr('Your free trial is on')
-      : tr('You have BudT Pro')
+      : tr('You have BudIT Pro')
     : plan?.trial
-      ? tr('Try BudT Pro free for {0}', [plan.trial])
-      : tr('Unlock BudT Pro');
+      ? tr('Try BudIT Pro free for {0}', [plan.trial])
+      : tr('Unlock BudIT Pro');
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: tr('BudT Pro') }} />
+      <Stack.Screen options={{ title: tr('BudIT Pro') }} />
       <View style={styles.hero}>
         <Image source={require('../../assets/icon.png')} style={styles.icon} accessibilityIgnoresInvertColors />
         <AppText variant="title" style={{ textAlign: 'center' }}>{title}</AppText>

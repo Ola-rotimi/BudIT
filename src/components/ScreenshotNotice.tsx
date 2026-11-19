@@ -37,7 +37,7 @@ export function ScreenshotNotice() {
         <View style={{ flex: 1 }}>
           <AppText weight="700">{tr('Screenshot blocked')}</AppText>
           <AppText variant="caption">
-            {Platform.OS === 'ios' ? tr('BudT’s privacy screen is on, so screenshots come out blank.') : tr('BudT’s privacy screen is on, so screenshots are blocked.')}{' '}
+            {Platform.OS === 'ios' ? tr('BudIT’s privacy screen is on, so screenshots come out blank.') : tr('BudIT’s privacy screen is on, so screenshots are blocked.')}{' '}
             <AppText
               variant="caption"
               weight="700"

@@ -20,13 +20,29 @@ export type LockConfig = {
   timeout: number;
   /** Hide the app in the app switcher and block screenshots. */
   privacy: boolean;
-  /** A second "safe" PIN is set: it opens BudT in safe mode (see `safeMode`). */
+  /** A second "safe" PIN is set: it opens BudIT in safe mode (see `safeMode`). */
   safePin: boolean;
 };
 
 const DEFAULT_CONFIG: LockConfig = { enabled: false, pinLength: 4, biometrics: false, timeout: 60, privacy: false, safePin: false };
 
-const KEYS = { config: 'budt.lock', pin: 'budt.pin', safePin: 'budt.safePin', failures: 'budt.pinFailures' };
+const KEYS = { config: 'budit.lock', pin: 'budit.pin', safePin: 'budit.safePin', failures: 'budit.pinFailures' };
+/** Keychain names from before the app was renamed BudIT; moved over once so the PIN keeps working. */
+const LEGACY_PREFIX = 'budt.';
+
+async function moveLegacyKeys() {
+  for (const key of Object.values(KEYS)) {
+    const old = LEGACY_PREFIX + key.slice(key.indexOf('.') + 1);
+    try {
+      const value = await SecureStore.getItemAsync(old, STORE_OPTS);
+      if (value === null) continue;
+      if ((await SecureStore.getItemAsync(key, STORE_OPTS)) === null) await SecureStore.setItemAsync(key, value, STORE_OPTS);
+      await SecureStore.deleteItemAsync(old, STORE_OPTS);
+    } catch (e) {
+      console.warn('Couldn’t move a keychain entry to its new name', e);
+    }
+  }
+}
 const STORE_OPTS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 
 /** Wrong PINs allowed before a lockout; each further miss doubles the wait. */
@@ -126,6 +142,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
+      await moveLegacyKeys();
       const [stored, fails, kind] = await Promise.all([readJson<LockConfig>(KEYS.config), readJson<Failures>(KEYS.failures), detectBiometrics()]);
       const cfg = { ...DEFAULT_CONFIG, ...stored };
       setConfig(cfg);
@@ -270,7 +287,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       unlockWithBiometrics: async () => {
         if (!config.biometrics || !biometricKind) return false;
         const res = await LocalAuthentication.authenticateAsync({
-          promptMessage: tr('Unlock BudT'),
+          promptMessage: tr('Unlock BudIT'),
           cancelLabel: tr('Use PIN'),
           fallbackLabel: '',
           disableDeviceFallback: true,
@@ -278,7 +295,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         return unlockAfter(res.success);
       },
       unlockWithDeviceCredentials: async () => {
-        const res = await LocalAuthentication.authenticateAsync({ promptMessage: tr('Unlock BudT with your phone’s passcode') });
+        const res = await LocalAuthentication.authenticateAsync({ promptMessage: tr('Unlock BudIT with your phone’s passcode') });
         return unlockAfter(res.success);
       },
       update: (changes) => saveConfig({ ...config, ...changes }),

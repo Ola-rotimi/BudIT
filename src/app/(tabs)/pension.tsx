@@ -220,7 +220,7 @@ function PensionForm({ preset }: { preset?: CountryPreset }) {
       ) : (
         <ProLock
           title={tr('See your retirement projection')}
-          message={tr('BudT Pro projects your pension pot and retirement income{0}, and shows whether you’re on track.', [preset ? tr(' under {0}', [preset.pension.scheme]) : ''])}
+          message={tr('BudIT Pro projects your pension pot and retirement income{0}, and shows whether you’re on track.', [preset ? tr(' under {0}', [preset.pension.scheme]) : ''])}
         />
       )}
 

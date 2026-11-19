@@ -53,7 +53,7 @@ export default function GroupFormScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: tr('New savings group') }} />
-      <AppText variant="caption">{tr('Each cycle every member pays in, and one member collects the whole pot. BudT tracks your contributions, your turn and your payout.')}</AppText>
+      <AppText variant="caption">{tr('Each cycle every member pays in, and one member collects the whole pot. BudIT tracks your contributions, your turn and your payout.')}</AppText>
       <Field label={tr('Group name')} value={name} onChangeText={setName} placeholder={tr('e.g. Market women ajo')} />
       <Field label={tr('Contribution per cycle')} prefix={currency} value={contribution} onChangeText={setContribution} keyboardType="decimal-pad" placeholder="0" />
       <View style={{ gap: 8 }}>

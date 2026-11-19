@@ -123,11 +123,11 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
           <AppText variant="caption" color={message ? t.expense : t.muted} style={{ textAlign: 'center' }}>
             {message ??
               (step === 'new' && mode === 'set'
-                ? tr('You’ll need it to open BudT{0}.', [
+                ? tr('You’ll need it to open BudIT{0}.', [
                     security.biometricKind ? tr(', unless you use {0}', [biometricLabel(security.biometricKind)]) : '',
                   ])
                 : step === 'new' && mode === 'safe'
-                  ? tr('Entering this PIN opens BudT with amounts hidden and accounts, debts, groups and IOUs looking empty.')
+                  ? tr('Entering this PIN opens BudIT with amounts hidden and accounts, debts, groups and IOUs looking empty.')
                   : ' ')}
           </AppText>
           {step === 'new' && mode !== 'safe' && (

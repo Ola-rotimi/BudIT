@@ -25,4 +25,4 @@ const SafeToSpendWidget = (props: WidgetProps, environment: WidgetEnvironment) =
   );
 };
 
-export default createWidget<WidgetProps>('SafeToSpend', SafeToSpendWidget, { title: 'BudT', amount: '—', detail: 'Open BudT to update', negative: false });
+export default createWidget<WidgetProps>('SafeToSpend', SafeToSpendWidget, { title: 'BudIT', amount: '—', detail: 'Open BudIT to update', negative: false });

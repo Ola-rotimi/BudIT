@@ -305,7 +305,7 @@ function TaxForm({ preset }: { preset?: CountryPreset }) {
       ) : (
         <ProLock
           title={tr('See your take-home pay')}
-          message={tr('BudT Pro works out income tax, payroll deductions and take-home pay{0}.', [preset ? tr(' using {0}’s {1} rules', [preset.name, tax!.year]) : ''])}
+          message={tr('BudIT Pro works out income tax, payroll deductions and take-home pay{0}.', [preset ? tr(' using {0}’s {1} rules', [preset.name, tax!.year]) : ''])}
         />
       )}
 

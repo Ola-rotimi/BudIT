@@ -65,7 +65,7 @@ export function BackgroundJobs() {
     };
     const refreshWidget = async () => {
       if (!showAmounts) {
-        updateWidget({ title: tr('Safe to spend'), amount: '•••••', detail: tr('Open BudT to see your figures'), negative: false });
+        updateWidget({ title: tr('Safe to spend'), amount: '•••••', detail: tr('Open BudIT to see your figures'), negative: false });
         return;
       }
       const today = todayISO();

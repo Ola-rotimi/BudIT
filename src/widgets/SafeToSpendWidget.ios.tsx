@@ -14,7 +14,7 @@ const SafeToSpendWidget = (props: WidgetProps, environment: WidgetEnvironment) =
     <VStack
       alignment="leading"
       spacing={4}
-      modifiers={[containerBackground(dark ? '#0B1F1C' : '#F0FDFA', 'widget'), widgetURL('budt://')]}>
+      modifiers={[containerBackground(dark ? '#0B1F1C' : '#F0FDFA', 'widget'), widgetURL('budit://')]}>
       <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle(dark ? '#5EEAD4' : '#0F766E'), lineLimit(1)]}>{props.title}</Text>
       <Text modifiers={[font({ size: 26, weight: 'bold', design: 'rounded' }), foregroundStyle(props.negative ? '#DC2626' : dark ? '#ECF5F3' : '#0F172A'), minimumScaleFactor(0.5), lineLimit(1)]}>
         {props.amount}
@@ -24,4 +24,4 @@ const SafeToSpendWidget = (props: WidgetProps, environment: WidgetEnvironment) =
   );
 };
 
-export default createWidget<WidgetProps>('SafeToSpend', SafeToSpendWidget, { title: 'BudT', amount: '—', detail: 'Open BudT to update', negative: false });
+export default createWidget<WidgetProps>('SafeToSpend', SafeToSpendWidget, { title: 'BudIT', amount: '—', detail: 'Open BudIT to update', negative: false });

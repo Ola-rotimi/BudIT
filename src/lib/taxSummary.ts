@@ -90,7 +90,7 @@ export function taxSummaryHtml(s: TaxSummary, currency: string) {
     .box{background:#F0FDFA;border:1px solid #99F6E4;border-radius:8px;padding:10px 12px;margin-top:8px}
     .note{color:#64748b;font-size:10px;margin-top:20px;line-height:1.5}
   </style></head><body>
-  <h1>BudT annual summary ${s.year}</h1>
+  <h1>BudIT annual summary ${s.year}</h1>
   <div class="meta">1 January – 31 December ${s.year} · amounts in ${esc(currency)} · generated ${esc(new Date().toLocaleDateString())}</div>
   <h2>Income</h2>
   <table><tr><th>Category</th><th class="n">Entries</th><th class="n">Total</th></tr>${rows(s.income)}
@@ -102,7 +102,7 @@ export function taxSummaryHtml(s: TaxSummary, currency: string) {
     e
       ? `<h2>Estimated income tax on salary (${esc(e.country)}, ${esc(e.taxYear)} rules)</h2>
   <table>
-    <tr><td>Salary recorded in BudT</td><td class="n">${m(s.salary)}</td></tr>
+    <tr><td>Salary recorded in BudIT</td><td class="n">${m(s.salary)}</td></tr>
     ${e.contributions.map((c) => `<tr><td>${esc(c.name)}</td><td class="n">${m(c.amount)}</td></tr>`).join('')}
     ${e.rentRelief ? `<tr><td>Rent relief (from ${m(s.housing)} housing payments)</td><td class="n">${m(e.rentRelief)}</td></tr>` : ''}
     <tr><td>Taxable income</td><td class="n">${m(e.taxable)}</td></tr>
@@ -112,7 +112,7 @@ export function taxSummaryHtml(s: TaxSummary, currency: string) {
   <div class="box">Compare the estimated tax with the PAYE shown on your payslips or your employer's year-end tax certificate. A large difference may mean a refund is due, or that other income needs declaring.</div>`
       : ''
   }
-  <p class="note">Prepared from records you entered in BudT. Salary uses an example split of basic pay and allowances, and the
+  <p class="note">Prepared from records you entered in BudIT. Salary uses an example split of basic pay and allowances, and the
   estimate covers a single person with no other reliefs. Tax years differ by country (for example April–April or July–June).
   This is not tax advice: confirm figures with your tax authority or a tax professional before filing.</p>
   </body></html>`;

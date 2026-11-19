@@ -30,7 +30,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: tr('Home'),
-          headerTitle: tr('BudT'),
+          headerTitle: tr('BudIT'),
           tabBarIcon: tabIcon('home'),
           headerRight: () => <HeaderButton icon="settings-outline" label={tr('Settings')} onPress={() => router.push('/settings')} />,
         }}

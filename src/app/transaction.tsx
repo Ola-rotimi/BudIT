@@ -72,7 +72,7 @@ export default function TransactionScreen() {
       saved = await saveTransaction(db, { id, type, amount: cents, category_id: categoryId, account_id: accountId, date, note: note.trim() });
     } catch (e) {
       if (e instanceof MissingRateError) {
-        return Alert.alert(tr('No exchange rate yet'), tr('BudT needs the official {0} rate once to record this. Connect to the internet and try again.', [entryCurrency]));
+        return Alert.alert(tr('No exchange rate yet'), tr('BudIT needs the official {0} rate once to record this. Connect to the internet and try again.', [entryCurrency]));
       }
       throw e;
     }
@@ -176,7 +176,7 @@ export default function TransactionScreen() {
             ]}
           />
           {repeat !== 'none' && (
-            <AppText variant="caption">{tr('BudT will add this {0} automatically every {1}, starting {2}. Manage it under More → Recurring.', [type === 'income' ? tr('income') : tr('expense'), repeat === 'weekly' ? tr('week') : repeat === 'monthly' ? tr('month') : tr('year'), shortDate(advanceDate(date, repeat))])}</AppText>
+            <AppText variant="caption">{tr('BudIT will add this {0} automatically every {1}, starting {2}. Manage it under More → Recurring.', [type === 'income' ? tr('income') : tr('expense'), repeat === 'weekly' ? tr('week') : repeat === 'monthly' ? tr('month') : tr('year'), shortDate(advanceDate(date, repeat))])}</AppText>
           )}
         </View>
       )}

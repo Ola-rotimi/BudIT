@@ -28,7 +28,7 @@ const DICTIONARIES: Record<Exclude<Language, 'en'>, Record<string, string>> = { 
 
 let current: Language = 'en';
 
-/** The phone's language if BudT has it, otherwise English. */
+/** The phone's language if BudIT has it, otherwise English. */
 export function deviceLanguage(): Language {
   for (const locale of getLocales()) {
     const code = locale.languageCode?.toLowerCase();

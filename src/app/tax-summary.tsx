@@ -36,7 +36,7 @@ export default function TaxSummaryScreen() {
       <ProScreen
         screenTitle={tr('Annual summary')}
         title={tr('Your year, ready for tax time')}
-        message={tr('BudT Pro turns a year of records into a PDF: income and spending by category, plus an estimate of the tax due on your salary.')}
+        message={tr('BudIT Pro turns a year of records into a PDF: income and spending by category, plus an estimate of the tax due on your salary.')}
       />
     );
   }
@@ -52,7 +52,7 @@ export default function TaxSummaryScreen() {
     setBusy(true);
     try {
       const { uri } = await Print.printToFileAsync({ html: taxSummaryHtml(summary, currency), width: 595, height: 842 });
-      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: tr('BudT summary {0}', [year]) });
+      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: tr('BudIT summary {0}', [year]) });
     } catch {
       Alert.alert(tr('Couldn’t create the PDF'), tr('Please try again.'));
     } finally {

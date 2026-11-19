@@ -1,6 +1,6 @@
 import { useColorScheme } from 'react-native';
 
-/** Brand colours taken from the BudT app icon. */
+/** Brand colours taken from the BudIT app icon. */
 export const BRAND = {
   gradientStart: '#0F766E',
   gradientEnd: '#064E3B',
