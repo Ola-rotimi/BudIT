@@ -4,17 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { N_, tr } from '@/i18n';
 import { biometricLabel, useSecurity } from '@/lib/security';
 import { useTheme } from '@/lib/theme';
+import { PanicDetailsForm } from './PanicDetails';
 import { PinPad } from './PinPad';
 import { AppText, Segmented } from './ui';
 
-export type PinMode = 'set' | 'change' | 'disable' | 'safe';
-type Step = 'current' | 'new' | 'confirm';
+/** `decoy` edits the panic PIN's made-up budget without touching the PIN. */
+export type PinMode = 'set' | 'change' | 'disable' | 'safe' | 'decoy';
+type Step = 'current' | 'new' | 'confirm' | 'details';
 
 const TITLES: Record<PinMode, string> = {
   set: N_('Set up app lock'),
   change: N_('Change PIN'),
   disable: N_('Turn off app lock'),
-  safe: N_('Set a safe PIN'),
+  safe: N_('Set a panic PIN'),
+  decoy: N_('Made-up budget'),
 };
 
 /**
@@ -33,7 +36,7 @@ export function PinSetup({ mode, onClose }: { mode: PinMode | null; onClose: () 
 function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void }) {
   const t = useTheme();
   const security = useSecurity();
-  const [step, setStep] = useState<Step>(mode === 'set' ? 'new' : 'current');
+  const [step, setStep] = useState<Step>(mode === 'set' ? 'new' : mode === 'decoy' ? 'details' : 'current');
   // A safe PIN always has the same length as the real one, so the lock screen looks the same.
   const [length, setLength] = useState<4 | 6>(security.config.pinLength);
   const [first, setFirst] = useState('');
@@ -90,9 +93,14 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
       return false;
     }
     const save = () => (mode === 'set' ? security.enableLock(pin, length) : mode === 'safe' ? security.setSafePin(pin) : security.changePin(pin, length));
-    if (await attempt(save)) onClose();
-    else setStep('new');
+    if (!(await attempt(save))) setStep('new');
+    // With the panic PIN saved, choose what it shows.
+    else if (mode === 'safe') setStep('details');
+    else onClose();
   };
+
+  // Once the panic PIN is saved, leaving just keeps the ordinary figures.
+  const closeLabel = step === 'details' && mode === 'safe' ? N_('Skip') : N_('Cancel');
 
   const prompt =
     step === 'current'
@@ -107,48 +115,52 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
     <SafeAreaView style={[styles.screen, { backgroundColor: t.bg }]}>
       <View style={[styles.header, { borderBottomColor: t.border }]}>
         {/* Leaving without finishing changes nothing: the lock stays as it was. */}
-        <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr('Cancel')} style={styles.cancel}>
+        <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr(closeLabel)} style={styles.cancel}>
           <AppText weight="600" color={t.primary}>
-            {tr('Cancel')}
+            {tr(closeLabel)}
           </AppText>
         </Pressable>
         <AppText weight="700" style={styles.title} numberOfLines={1}>
-          {tr(TITLES[mode])}
+          {tr(step === 'details' ? TITLES.decoy : TITLES[mode])}
         </AppText>
         <View style={styles.cancel} />
       </View>
-      <View style={styles.body}>
-        <View style={{ gap: 10, alignItems: 'center' }}>
-          <AppText variant="heading">{prompt}</AppText>
-          <AppText variant="caption" color={message ? t.expense : t.muted} style={{ textAlign: 'center' }}>
-            {message ??
-              (step === 'new' && mode === 'set'
-                ? tr('You’ll need it to open BudIT{0}.', [
-                    security.biometricKind ? tr(', unless you use {0}', [biometricLabel(security.biometricKind)]) : '',
-                  ])
-                : step === 'new' && mode === 'safe'
-                  ? tr('Entering this PIN opens BudIT with amounts hidden and accounts, debts, groups and IOUs looking empty.')
-                  : ' ')}
-          </AppText>
-          {step === 'new' && mode !== 'safe' && (
-            <View style={{ width: 220 }}>
-              <Segmented<'4' | '6'>
-                value={String(length) as '4' | '6'}
-                onChange={(v) => setLength(Number(v) as 4 | 6)}
-                options={[
-                  { value: '4', label: tr('4 digits') },
-                  { value: '6', label: tr('6 digits') },
-                ]}
-              />
-            </View>
-          )}
+      {step === 'details' ? (
+        <PanicDetailsForm onDone={onClose} skipLabel={mode === 'safe' ? tr('Skip, choose for me') : undefined} />
+      ) : (
+        <View style={styles.body}>
+          <View style={{ gap: 10, alignItems: 'center' }}>
+            <AppText variant="heading">{prompt}</AppText>
+            <AppText variant="caption" color={message ? t.expense : t.muted} style={{ textAlign: 'center' }}>
+              {message ??
+                (step === 'new' && mode === 'set'
+                  ? tr('You’ll need it to open BudIT{0}.', [
+                      security.biometricKind ? tr(', unless you use {0}', [biometricLabel(security.biometricKind)]) : '',
+                    ])
+                  : step === 'new' && mode === 'safe'
+                    ? tr('Entering this PIN opens BudIT with a made-up budget. You’ll choose its figures next.')
+                    : ' ')}
+            </AppText>
+            {step === 'new' && mode !== 'safe' && (
+              <View style={{ width: 220 }}>
+                <Segmented<'4' | '6'>
+                  value={String(length) as '4' | '6'}
+                  onChange={(v) => setLength(Number(v) as 4 | 6)}
+                  options={[
+                    { value: '4', label: tr('4 digits') },
+                    { value: '6', label: tr('6 digits') },
+                  ]}
+                />
+              </View>
+            )}
+          </View>
+          <PinPad
+            key={`${step}-${step === 'current' ? security.config.pinLength : length}`}
+            length={step === 'current' ? security.config.pinLength : length}
+            onComplete={step === 'current' ? onCurrent : step === 'new' ? onNew : onConfirm}
+          />
         </View>
-        <PinPad
-          key={`${step}-${step === 'current' ? security.config.pinLength : length}`}
-          length={step === 'current' ? security.config.pinLength : length}
-          onComplete={step === 'current' ? onCurrent : step === 'new' ? onNew : onConfirm}
-        />
-      </View>
+      )}
     </SafeAreaView>
   );
 }

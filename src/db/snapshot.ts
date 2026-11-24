@@ -60,7 +60,9 @@ const entries = () => Object.entries(TABLES) as [TableName, readonly string[]][]
 export async function exportSnapshot(db: SQLiteDatabase): Promise<Snapshot> {
   const tables = {} as Record<TableName, Row[]>;
   for (const [name, columns] of entries()) {
-    tables[name] = await db.getAllAsync<Row>(`SELECT ${columns.join(', ')} FROM ${name}`);
+    // The panic-PIN decoy's own bookkeeping (db/decoy.ts) stays out, so its backups look ordinary.
+    const where = name === 'settings' ? " WHERE key NOT LIKE 'decoy%'" : '';
+    tables[name] = await db.getAllAsync<Row>(`SELECT ${columns.join(', ')} FROM ${name}${where}`);
   }
   return { app: 'BudIT', format: SNAPSHOT_FORMAT, exportedAt: new Date().toISOString(), tables };
 }

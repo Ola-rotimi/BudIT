@@ -60,8 +60,11 @@ export function shiftDate(date: string, days: number) {
   return iso(d);
 }
 
-/** Every fake entry from `from` to `to` (inclusive). Amounts are in cents; `income` is major units. */
-export function fakeTransactions(from: string, to: string, income: number): FakeTransaction[] {
+/**
+ * Every fake entry from `from` to `to` (inclusive). Amounts are in cents; `income` is major units.
+ * The salary lands on `payday` (or the month's last day, in months too short for it).
+ */
+export function fakeTransactions(from: string, to: string, income: number, payday = 25): FakeTransaction[] {
   const out: FakeTransaction[] = [];
   const add = (date: string, category: string, share: number, spread = 0, seed = category) => {
     const factor = spread ? 1 - spread + 2 * spread * chance(`${date}:${seed}:amount`) : 1;
@@ -74,7 +77,8 @@ export function fakeTransactions(from: string, to: string, income: number): Fake
     const weekday = d.getDay(); // 0 = Sunday
     const roll = (what: string) => chance(`${date}:${what}`);
 
-    if (day === 25) add(date, 'Salary', 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    if (day === Math.min(payday, lastDay)) add(date, 'Salary', 1);
     if (day === 1) add(date, 'Housing', 0.25);
     if (day === 5) add(date, 'Utilities', 0.03, 0.15, 'power');
     if (day === 10 || day === 22) add(date, 'Utilities', 0.012, 0, 'data');

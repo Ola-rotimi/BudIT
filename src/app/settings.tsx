@@ -60,6 +60,8 @@ export default function SettingsScreen() {
   const { currency, currencyChosen, setCurrency, country, theme, setTheme, reload, setOnboarded, hideAmounts, monthStartDay, setMonthStartDay } =
     useSettings();
   const security = useSecurity();
+  /** Opened with the panic PIN: this is the decoy, so anything touching the real app is hidden. */
+  const panic = security.safeMode;
   const confirm = useReauth();
   const rooted = useDeviceLooksRooted();
   const amounts = useAmountsToggle();
@@ -223,82 +225,88 @@ export default function SettingsScreen() {
     <Screen>
       <Stack.Screen options={{ title: tr('Settings') }} />
 
-      <Card style={{ gap: 6 }}>
-        <ListRow
-          icon="sparkles"
-          iconColor={t.accent}
-          title={pro.isPro ? tr('BudIT Pro is active') : tr('Upgrade to BudIT Pro')}
-          subtitle={
-            pro.trial
-              ? tr('Free trial until {0}', [shortDate(toISODate(new Date(pro.trial.endsAt)))])
-              : pro.isPro
-                ? tr('Thanks for supporting BudIT')
-                : tr('Goals, bills, tax & pension, and every financial tool')
-          }
-          onPress={() => router.push('/paywall')}
-        />
-        {pro.isPro && pro.managementUrl ? (
-          <>
-            <Divider />
-            <ListRow icon="card-outline" iconColor={t.primary} title={tr('Manage subscription')} onPress={() => Linking.openURL(pro.managementUrl!)} />
-          </>
-        ) : null}
-        {!pro.isPro && pro.available ? (
-          <>
-            <Divider />
-            <ListRow icon="refresh" iconColor={t.primary} title={tr('Restore purchases')} onPress={restorePro} chevron={false} />
-          </>
-        ) : null}
-        {__DEV__ && (
-          <>
-            <Divider />
-            <View style={styles.devRow}>
-              <AppText variant="caption" style={{ flex: 1 }}>{tr('Developer: simulate Pro (development builds only)')}</AppText>
-              <Switch value={pro.devOverride} onValueChange={pro.setDevOverride} trackColor={{ true: t.primary }} />
-            </View>
-          </>
-        )}
-      </Card>
+      {/* Hidden in panic mode, so nothing there leads to a real purchase. */}
+      {!panic && (
+        <Card style={{ gap: 6 }}>
+          <ListRow
+            icon="sparkles"
+            iconColor={t.accent}
+            title={pro.isPro ? tr('BudIT Pro is active') : tr('Upgrade to BudIT Pro')}
+            subtitle={
+              pro.trial
+                ? tr('Free trial until {0}', [shortDate(toISODate(new Date(pro.trial.endsAt)))])
+                : pro.isPro
+                  ? tr('Thanks for supporting BudIT')
+                  : tr('Goals, bills, tax & pension, and every financial tool')
+            }
+            onPress={() => router.push('/paywall')}
+          />
+          {pro.isPro && pro.managementUrl ? (
+            <>
+              <Divider />
+              <ListRow icon="card-outline" iconColor={t.primary} title={tr('Manage subscription')} onPress={() => Linking.openURL(pro.managementUrl!)} />
+            </>
+          ) : null}
+          {!pro.isPro && pro.available ? (
+            <>
+              <Divider />
+              <ListRow icon="refresh" iconColor={t.primary} title={tr('Restore purchases')} onPress={restorePro} chevron={false} />
+            </>
+          ) : null}
+          {__DEV__ && (
+            <>
+              <Divider />
+              <View style={styles.devRow}>
+                <AppText variant="caption" style={{ flex: 1 }}>{tr('Developer: simulate Pro (development builds only)')}</AppText>
+                <Switch value={pro.devOverride} onValueChange={pro.setDevOverride} trackColor={{ true: t.primary }} />
+              </View>
+            </>
+          )}
+        </Card>
+      )}
 
       <Card style={{ gap: 6 }}>
         <AppText variant="label">{tr('SECURITY & PRIVACY')}</AppText>
-        <ToggleRow
-          icon="lock-closed-outline"
-          title={tr('App lock')}
-          subtitle={
-            security.config.enabled ? tr('{0}-digit PIN{1}', [security.config.pinLength, security.config.biometrics && security.biometricKind ? tr(' or {0}', [biometricLabel(security.biometricKind)]) : '']) : tr('Ask for a PIN whenever BudIT opens')
-          }
-          value={security.config.enabled}
-          onChange={(on) => setPinMode(on ? 'set' : 'disable')}
-        />
-        {security.config.enabled && (
+        {/*
+          In panic mode (the panic PIN opened a made-up budget) the lock settings are left out: they'd
+          change the real app's protection, and asking for the real PIN would give the decoy away.
+        */}
+        {!panic && (
           <>
-            {security.biometricKind && (
+            <ToggleRow
+              icon="lock-closed-outline"
+              title={tr('App lock')}
+              subtitle={
+                security.config.enabled ? tr('{0}-digit PIN{1}', [security.config.pinLength, security.config.biometrics && security.biometricKind ? tr(' or {0}', [biometricLabel(security.biometricKind)]) : '']) : tr('Ask for a PIN whenever BudIT opens')
+              }
+              value={security.config.enabled}
+              onChange={(on) => setPinMode(on ? 'set' : 'disable')}
+            />
+            {security.config.enabled && (
               <>
+                {security.biometricKind && (
+                  <>
+                    <Divider />
+                    <ToggleRow
+                      icon={security.biometricKind === 'face' ? 'scan-outline' : 'finger-print'}
+                      title={tr('Unlock with {0}', [biometricLabel(security.biometricKind)])}
+                      subtitle={tr('Your PIN still works as a backup')}
+                      value={security.config.biometrics}
+                      onChange={(on) => security.update({ biometrics: on })}
+                    />
+                  </>
+                )}
                 <Divider />
-                <ToggleRow
-                  icon={security.biometricKind === 'face' ? 'scan-outline' : 'finger-print'}
-                  title={tr('Unlock with {0}', [biometricLabel(security.biometricKind)])}
-                  subtitle={tr('Your PIN still works as a backup')}
-                  value={security.config.biometrics}
-                  onChange={(on) => security.update({ biometrics: on })}
-                />
-              </>
-            )}
-            <Divider />
-            <View style={{ gap: 8, paddingVertical: 4 }}>
-              <AppText weight="600">{tr('Lock after leaving BudIT')}</AppText>
-              <Segmented
-                value={String(security.config.timeout)}
-                onChange={(v) => security.update({ timeout: Number(v) })}
-                options={LOCK_AFTER.map((o) => ({ ...o, label: tr(o.label) }))}
-              />
-            </View>
-            <Divider />
-            <ListRow icon="keypad-outline" iconColor={t.primary} title={tr('Change PIN')} onPress={() => setPinMode('change')} />
-            {/* In safe mode the safe PIN is never mentioned, so nothing gives it away. */}
-            {!security.safeMode && (
-              <>
+                <View style={{ gap: 8, paddingVertical: 4 }}>
+                  <AppText weight="600">{tr('Lock after leaving BudIT')}</AppText>
+                  <Segmented
+                    value={String(security.config.timeout)}
+                    onChange={(v) => security.update({ timeout: Number(v) })}
+                    options={LOCK_AFTER.map((o) => ({ ...o, label: tr(o.label) }))}
+                  />
+                </View>
+                <Divider />
+                <ListRow icon="keypad-outline" iconColor={t.primary} title={tr('Change PIN')} onPress={() => setPinMode('change')} />
                 <Divider />
                 <ListRow
                   icon="shield-half-outline"
@@ -307,19 +315,31 @@ export default function SettingsScreen() {
                   subtitle={security.config.safePin ? tr('On. Opens BudIT with a made-up budget') : tr('A second PIN for when someone forces you to open BudIT')}
                   onPress={security.config.safePin ? safePinOptions : () => setPinMode('safe')}
                 />
+                {security.config.safePin && (
+                  <>
+                    <Divider />
+                    <ListRow
+                      icon="create-outline"
+                      iconColor={t.primary}
+                      title={tr('Made-up budget')}
+                      subtitle={tr('Choose the income, balance and savings the panic PIN shows')}
+                      onPress={() => setPinMode('decoy')}
+                    />
+                  </>
+                )}
               </>
             )}
+            <Divider />
+            <ToggleRow
+              icon="eye-off-outline"
+              title={tr('Privacy screen')}
+              subtitle={tr('Hide BudIT in recent apps and block screenshots')}
+              value={security.config.privacy}
+              onChange={setPrivacy}
+            />
+            <Divider />
           </>
         )}
-        <Divider />
-        <ToggleRow
-          icon="eye-off-outline"
-          title={tr('Privacy screen')}
-          subtitle={tr('Hide BudIT in recent apps and block screenshots')}
-          value={security.config.privacy}
-          onChange={setPrivacy}
-        />
-        <Divider />
         <ToggleRow
           icon="eye-outline"
           title={tr('Hide amounts')}
@@ -486,25 +506,34 @@ export default function SettingsScreen() {
           right={backupDue ? <Ionicons name="alert-circle" size={20} color={t.warning} accessibilityLabel={tr('Backup due')} /> : undefined}
           onPress={backup}
         />
-        <Divider />
-        <ListRow
-          icon="cloud-download-outline"
-          iconColor={t.primary}
-          title={tr('Restore from backup')}
-          subtitle={tr('Replace this device’s data with a backup file')}
-          onPress={restore}
-        />
+        {/* Restoring or erasing in panic mode only touches the decoy, but neither is worth offering there. */}
+        {!panic && (
+          <>
+            <Divider />
+            <ListRow
+              icon="cloud-download-outline"
+              iconColor={t.primary}
+              title={tr('Restore from backup')}
+              subtitle={tr('Replace this device’s data with a backup file')}
+              onPress={restore}
+            />
+          </>
+        )}
         <Divider />
         <ListRow icon="share-outline" iconColor="#3B82F6" title={tr('Export transactions')} subtitle={tr('Share all transactions as CSV')} onPress={exportCsv} />
-        <Divider />
-        <ListRow
-          icon="trash-outline"
-          iconColor={t.expense}
-          title={tr('Erase all data')}
-          subtitle={tr('Start over with a clean slate')}
-          onPress={reset}
-          chevron={false}
-        />
+        {!panic && (
+          <>
+            <Divider />
+            <ListRow
+              icon="trash-outline"
+              iconColor={t.expense}
+              title={tr('Erase all data')}
+              subtitle={tr('Start over with a clean slate')}
+              onPress={reset}
+              chevron={false}
+            />
+          </>
+        )}
       </Card>
 
       <Card style={{ gap: 6 }}>
@@ -523,7 +552,7 @@ export default function SettingsScreen() {
         <AppText variant="caption">{tr('BudIT {0}', [Constants.expoConfig?.version ?? ''])}</AppText>
       </View>
 
-      <PinSetup mode={pinMode} onClose={() => setPinMode(null)} />
+      {!panic && <PinSetup mode={pinMode} onClose={() => setPinMode(null)} />}
       <PasswordPrompt
         visible={!!prompt}
         mode={prompt?.mode ?? 'enter'}

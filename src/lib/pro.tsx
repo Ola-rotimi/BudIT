@@ -14,6 +14,7 @@ import Purchases, {
   type PurchasesStoreProduct,
 } from 'react-native-purchases';
 import { tr } from '@/i18n';
+import { useSecurity } from './security';
 
 /** Entitlement identifier configured in the RevenueCat dashboard. */
 export const PRO_ENTITLEMENT = 'pro';
@@ -67,6 +68,9 @@ export function ProProvider({ children }: { children: ReactNode }) {
   const [info, setInfo] = useState<CustomerInfo | null>(null);
   const [devOverride, setDevOverride] = useState(false);
   const available = !!API_KEY;
+  // Opened with the panic PIN (db/decoy.ts): nothing may reach the real store account, so buying and
+  // restoring fail the way a store error would, and the subscription link is withheld.
+  const { safeMode } = useSecurity();
 
   useEffect(() => {
     if (!configureOnce()) return;
@@ -78,6 +82,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const purchase = useCallback(async (pkg: PurchasesPackage) => {
+    if (safeMode) throw new Error('Store unavailable');
     try {
       const result = await Purchases.purchasePackage(pkg);
       setInfo(result.customerInfo);
@@ -86,26 +91,27 @@ export function ProProvider({ children }: { children: ReactNode }) {
       if ((e as PurchasesError).code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled' as const;
       throw e;
     }
-  }, []);
+  }, [safeMode]);
 
   const restore = useCallback(async () => {
+    if (safeMode) throw new Error('Store unavailable');
     const restored = await Purchases.restorePurchases();
     setInfo(restored);
     return hasPro(restored);
-  }, []);
+  }, [safeMode]);
 
   const value = useMemo<Pro>(
     () => ({
       isPro: hasPro(info) || (__DEV__ && devOverride),
       available,
-      managementUrl: info?.managementURL ?? null,
+      managementUrl: safeMode ? null : (info?.managementURL ?? null),
       trial: trialOfEntitlement(info),
       purchase,
       restore,
       devOverride,
       setDevOverride,
     }),
-    [info, available, purchase, restore, devOverride],
+    [info, available, purchase, restore, devOverride, safeMode],
   );
 
   return <ProContext.Provider value={value}>{children}</ProContext.Provider>;
