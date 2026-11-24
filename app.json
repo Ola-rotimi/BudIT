@@ -7,6 +7,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c42bbe4e-3800-4c78-bf05-b162a59baf2f"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budit.app",
