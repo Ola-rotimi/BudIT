@@ -207,14 +207,14 @@ export default function SettingsScreen() {
   };
 
   const safePinOptions = () =>
-    Alert.alert(tr('Safe PIN'), tr('Entering your safe PIN instead of your real one opens BudIT with amounts hidden and accounts, debts, groups and IOUs looking empty.'), [
+    Alert.alert(tr('Panic PIN'), tr('Entering your panic PIN instead of your real one opens BudIT with a made-up budget, so anyone forcing you to open it sees ordinary figures. Your real records stay hidden and untouched until you unlock with your real PIN.'), [
       { text: tr('Cancel'), style: 'cancel' },
-      { text: tr('Change safe PIN'), onPress: () => setPinMode('safe') },
+      { text: tr('Change panic PIN'), onPress: () => setPinMode('safe') },
       {
-        text: tr('Remove safe PIN'),
+        text: tr('Remove panic PIN'),
         style: 'destructive',
         onPress: async () => {
-          if (await confirm(tr('Remove your safe PIN'))) await security.removeSafePin();
+          if (await confirm(tr('Remove your panic PIN'))) await security.removeSafePin();
         },
       },
     ]);
@@ -303,8 +303,8 @@ export default function SettingsScreen() {
                 <ListRow
                   icon="shield-half-outline"
                   iconColor={t.primary}
-                  title={tr('Safe PIN')}
-                  subtitle={security.config.safePin ? tr('On. Opens BudIT with your finances hidden') : tr('A second PIN for when someone forces you to open BudIT')}
+                  title={tr('Panic PIN')}
+                  subtitle={security.config.safePin ? tr('On. Opens BudIT with a made-up budget') : tr('A second PIN for when someone forces you to open BudIT')}
                   onPress={security.config.safePin ? safePinOptions : () => setPinMode('safe')}
                 />
               </>

@@ -6,7 +6,6 @@ import { resolveLanguage, setLanguage as applyLanguage, type LanguagePreference 
 import { setPeriodStartDay } from './dates';
 import { CUSTOM_COUNTRY, getCountry } from './countries';
 import { formatMajor, formatMoney } from './money';
-import { useSecurity } from './security';
 import type { ThemePreference } from './theme';
 
 type Settings = {
@@ -142,10 +141,9 @@ export function useSettings() {
  */
 export function useMoney(override?: string) {
   const settings = useSettings();
-  const { safeMode } = useSecurity();
   const currency = override ?? settings.currency;
-  // Safe mode always hides amounts, whatever the setting says.
-  const hide = settings.hideAmounts || safeMode;
+  // (In safe mode this is the decoy's setting, and its made-up figures are fine to show.)
+  const hide = settings.hideAmounts;
   return useMemo(
     () => ({
       currency,

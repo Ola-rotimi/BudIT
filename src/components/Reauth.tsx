@@ -25,7 +25,7 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback<Confirm>(
     async (reason) => {
       if (security.config.enabled) {
-        // In safe mode only the real PIN will do; biometrics could be forced by whoever holds the phone.
+        // In safe mode, no biometrics: they could be forced. The PIN pad takes the real or panic PIN.
         if (!security.safeMode && security.config.biometrics && security.biometricKind) {
           const res = await LocalAuthentication.authenticateAsync({
             promptMessage: reason,
@@ -65,7 +65,7 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
 
 function PinCheck({ reason, onDone }: { reason: string; onDone: (ok: boolean) => void }) {
   const t = useTheme();
-  const { config, lockedUntil, checkPin } = useSecurity();
+  const { config, lockedUntil, checkReauthPin } = useSecurity();
   const [message, setMessage] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const waiting = lockedUntil > now;
@@ -82,7 +82,7 @@ function PinCheck({ reason, onDone }: { reason: string; onDone: (ok: boolean) =>
   }, [lockedUntil]);
 
   const submit = async (pin: string) => {
-    const result = await checkPin(pin);
+    const result = await checkReauthPin(pin);
     if (result.ok) {
       if (!done.current) {
         done.current = true;

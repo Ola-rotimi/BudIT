@@ -10,7 +10,6 @@ import { useQuery } from '@/hooks/useQuery';
 import { tr } from '@/i18n';
 import { monthLabel } from '@/lib/dates';
 import { usePro } from '@/lib/pro';
-import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
@@ -18,7 +17,6 @@ import { useTheme } from '@/lib/theme';
 export default function NetWorthScreen() {
   const t = useTheme();
   const { money } = useMoney();
-  const { safeMode } = useSecurity();
   const { isPro } = usePro();
   const data = useQuery('net-worth', async (db) => {
     // Keep this month's figure current and fill in earlier months the first time.
@@ -29,9 +27,7 @@ export default function NetWorthScreen() {
   });
 
   if (!data) return <Loading />;
-  // Safe mode: nothing to see (see lib/security).
-  const now = safeMode ? { ...data.now, assets: 0, liabilities: 0, unconverted: [], parts: { accountDebt: 0, loans: 0, owedToMe: 0, iOwe: 0 } } : data.now;
-  const history = safeMode ? [] : data.history;
+  const { now, history } = data;
   const net = now.assets - now.liabilities;
   const previous = history.length > 1 ? history[history.length - 2] : null;
   const change = previous ? net - (previous.assets - previous.liabilities) : null;

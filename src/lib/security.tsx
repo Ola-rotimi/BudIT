@@ -20,7 +20,7 @@ export type LockConfig = {
   timeout: number;
   /** Hide the app in the app switcher and block screenshots. */
   privacy: boolean;
-  /** A second "safe" PIN is set: it opens BudIT in safe mode (see `safeMode`). */
+  /** A second "panic" PIN is set: it opens BudIT in safe mode (see `safeMode`). */
   safePin: boolean;
 };
 
@@ -69,15 +69,21 @@ type Security = {
   changePin: (pin: string, pinLength: 4 | 6) => Promise<void>;
   /** Checks a PIN without unlocking (e.g. before changing it). Counts towards lockouts. */
   checkPin: (pin: string) => Promise<PinResult>;
+  /**
+   * For "confirm it's you" prompts: the real PIN, or in safe mode the panic PIN too. Those actions
+   * only touch the decoy then, and refusing the PIN someone just watched you type would give it away.
+   */
+  checkReauthPin: (pin: string) => Promise<PinResult>;
   unlockWithPin: (pin: string) => Promise<PinResult>;
   unlockWithBiometrics: () => Promise<boolean>;
   /** Unlocks with the phone's own passcode, for a forgotten PIN. */
   unlockWithDeviceCredentials: () => Promise<boolean>;
   update: (changes: Partial<Pick<LockConfig, 'biometrics' | 'timeout' | 'privacy'>>) => Promise<void>;
   /**
-   * True after unlocking with the safe PIN, for when someone forces you to open the app: amounts
-   * stay hidden, accounts, debts, groups and IOUs look empty, and sensitive settings need the real
-   * PIN. Ends the next time the app locks; leaving the app locks it straight away.
+   * True after unlocking with the panic PIN, for when someone forces you to open the app: BudIT
+   * shows a made-up budget from a separate decoy database (db/decoy.ts) and the real records stay
+   * closed. App-lock settings still need the real PIN. Ends the next time the app locks; leaving
+   * the app locks it straight away.
    */
   safeMode: boolean;
   setSafePin: (pin: string) => Promise<void>;
@@ -273,6 +279,11 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         await saveConfig({ ...config, pinLength, safePin: pinLength === config.pinLength && config.safePin });
       },
       checkPin,
+      checkReauthPin: async (pin) => {
+        if (failures.until > Date.now()) return { ok: false, lockedUntil: failures.until, attemptsLeft: 0 };
+        const ok = (await matches(pin, KEYS.pin)) || (safeMode && config.safePin && (await matches(pin, KEYS.safePin)));
+        return recordAttempt(ok);
+      },
       unlockWithPin: async (pin) => {
         if (failures.until > Date.now()) return { ok: false, lockedUntil: failures.until, attemptsLeft: 0 };
         const real = await matches(pin, KEYS.pin);

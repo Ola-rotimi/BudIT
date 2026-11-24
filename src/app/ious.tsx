@@ -9,7 +9,6 @@ import { useQuery } from '@/hooks/useQuery';
 import { tr } from '@/i18n';
 import { daysBetween, shortDate, todayISO } from '@/lib/dates';
 import { useFreeLimit } from '@/lib/limits';
-import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
@@ -19,7 +18,6 @@ type View_ = 'open' | 'settled';
 export default function IousScreen() {
   const t = useTheme();
   const { money } = useMoney();
-  const { safeMode } = useSecurity();
   const [view, setView] = useState<View_>('open');
   const limit = useFreeLimit('ious');
   const data = useQuery(`ious:${view}`, async (db) => {
@@ -28,9 +26,7 @@ export default function IousScreen() {
   });
 
   if (!data) return <Loading />;
-  // Safe mode: nothing to see (see lib/security).
-  const rows = safeMode ? [] : data.rows;
-  const totals = safeMode ? { owedToMe: 0, iOwe: 0 } : data.totals;
+  const { rows, totals } = data;
   const today = todayISO();
 
   const byPerson = new Map<string, IouRow[]>();

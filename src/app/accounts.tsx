@@ -5,7 +5,6 @@ import { HideAmountsButton } from '@/components/HideAmountsButton';
 import { listAccounts } from '@/db/queries';
 import { useQuery } from '@/hooks/useQuery';
 import { ACCOUNT_KINDS } from '@/lib/accounts';
-import { useSecurity } from '@/lib/security';
 import { useMoney } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -14,12 +13,10 @@ import { tr } from '@/i18n';
 export default function AccountsScreen() {
   const t = useTheme();
   const { money, moneyIn, currency } = useMoney();
-  const { safeMode } = useSecurity();
   const data = useQuery('accounts:list', (db) => listAccounts(db));
 
   if (!data) return <Loading />;
-  // Safe mode: show nothing worth seeing (see lib/security).
-  const accounts = safeMode ? [] : data;
+  const accounts = data;
   const counted = accounts.filter((a) => a.home_balance !== null);
   const total = counted.reduce((s, a) => s + a.home_balance!, 0);
   const owed = counted.filter((a) => a.home_balance! < 0).reduce((s, a) => s + a.home_balance!, 0);

@@ -1,5 +1,4 @@
 import { tr } from '@/i18n';
-import { useSecurity } from '@/lib/security';
 import { useSettings } from '@/lib/settings';
 import { useReauth } from './Reauth';
 import { HeaderButton } from './ui';
@@ -10,9 +9,8 @@ import { HeaderButton } from './ui';
  */
 export function useAmountsToggle() {
   const { hideAmounts, setHideAmounts } = useSettings();
-  const { safeMode } = useSecurity();
   const confirm = useReauth();
-  const hidden = hideAmounts || safeMode;
+  const hidden = hideAmounts;
   const toggle = async () => {
     if (!hidden) return setHideAmounts(true);
     if (await confirm(tr('Show your amounts'))) await setHideAmounts(false);

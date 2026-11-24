@@ -9,10 +9,11 @@ import { LockScreen } from '@/components/LockScreen';
 import { ReauthProvider } from '@/components/Reauth';
 import { SecurityChecks } from '@/components/SecurityChecks';
 import { ScreenshotNotice } from '@/components/ScreenshotNotice';
+import { DECOY_DB, prepareDecoy } from '@/db/decoy';
 import { keyStatement, PLAIN_DB, prepareDatabase, type PreparedDatabase } from '@/db/encryption';
 import { migrateDbIfNeeded } from '@/db/schema';
 import { ProProvider } from '@/lib/pro';
-import { SecurityProvider } from '@/lib/security';
+import { SecurityProvider, useSecurity } from '@/lib/security';
 import { SettingsProvider, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import { tr } from '@/i18n';
@@ -66,9 +67,14 @@ function LanguageRoot({ children }: { children: ReactNode }) {
   return <Fragment key={language}>{children}</Fragment>;
 }
 
-/** Opens the (encrypted, where the build supports it) database before anything reads from it. */
+/**
+ * Opens the (encrypted, where the build supports it) database before anything reads from it. After
+ * an unlock with the panic PIN it opens the decoy instead (db/decoy.ts); the lock screen covers the
+ * switch, and the whole app remounts on the other database.
+ */
 function DatabaseGate({ children }: { children: ReactNode }) {
   const [prepared, setPrepared] = useState<PreparedDatabase>();
+  const { safeMode } = useSecurity();
 
   useEffect(() => {
     prepareDatabase().then(setPrepared, (e) => {
@@ -85,18 +91,24 @@ function DatabaseGate({ children }: { children: ReactNode }) {
     );
   }, [prepared?.unreadable]);
 
-  const key = prepared?.key;
   const onInit = useCallback(
     async (db: SQLiteDatabase) => {
-      if (key) await db.execAsync(keyStatement(key));
+      if (!prepared) return;
+      if (safeMode) {
+        await migrateDbIfNeeded(db);
+        await prepareDecoy(db, prepared);
+        return;
+      }
+      if (prepared.key) await db.execAsync(keyStatement(prepared.key));
       await migrateDbIfNeeded(db);
     },
-    [key],
+    [prepared, safeMode],
   );
 
   if (!prepared) return null;
+  const name = safeMode ? DECOY_DB : prepared.name;
   return (
-    <SQLiteProvider databaseName={prepared.name} onInit={onInit}>
+    <SQLiteProvider key={name} databaseName={name} onInit={onInit}>
       {children}
     </SQLiteProvider>
   );

@@ -26,7 +26,7 @@ export function BackgroundJobs() {
   const { hideAmounts, currency } = useSettings();
   const { config, safeMode } = useSecurity();
   // Keep figures off the lock screen and home screen when the user has asked for privacy.
-  const showAmounts = !hideAmounts && !config.enabled && !safeMode;
+  const showAmounts = !hideAmounts && !config.enabled;
 
   // On launch and on return to the app: add recurring transactions that have come due, and refresh
   // the official rates for accounts held in other currencies (cached, so totals work offline).
@@ -54,6 +54,8 @@ export function BackgroundJobs() {
 
   // After any change: rebuild reminders, refresh the widget and this month's net worth.
   useEffect(() => {
+    // In safe mode `db` is the decoy: leave the real reminders and widget exactly as they are.
+    if (safeMode) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const sync = () => {
       clearTimeout(timer);
@@ -89,7 +91,7 @@ export function BackgroundJobs() {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [db, isPro, showAmounts, currency]);
+  }, [db, isPro, showAmounts, currency, safeMode]);
 
   return null;
 }

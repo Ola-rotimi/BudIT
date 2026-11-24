@@ -75,7 +75,7 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
     }
     // The real PIN and the safe PIN must differ, or the lock screen couldn't tell them apart.
     if (mode === 'safe' ? await security.isRealPin(pin) : await security.isSafePin(pin)) {
-      setMessage(tr('Your app PIN and safe PIN must be different.'));
+      setMessage(tr('Your app PIN and panic PIN must be different.'));
       return false;
     }
     setFirst(pin);
@@ -99,7 +99,7 @@ function PinSetupBody({ mode, onClose }: { mode: PinMode; onClose: () => void })
       ? tr('Enter your current PIN')
       : step === 'new'
         ? mode === 'safe'
-          ? tr('Choose a {0}-digit safe PIN', [length])
+          ? tr('Choose a {0}-digit panic PIN', [length])
           : tr('Choose a {0}-digit PIN', [length])
         : tr('Enter the same PIN again');
 
